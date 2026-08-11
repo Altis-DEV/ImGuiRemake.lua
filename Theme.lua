@@ -12,10 +12,11 @@ Theme.Themes = {
         Border = Color3.fromRGB(60, 60, 60),
         Tab = Color3.fromRGB(35, 35, 35),
         TabHighlight = Color3.fromRGB(40, 90, 175),
-        -- Button
         Button = Color3.fromRGB(40, 90, 175),
         ButtonHighlight = Color3.fromRGB(60, 110, 220),
         ButtonText = Color3.fromRGB(255, 255, 255)
+        Checkbox = Color3.fromRGB(0, 170, 255), -- Màu của hình vuông nhỏ xíu bên trong
+
     }
 }
 
