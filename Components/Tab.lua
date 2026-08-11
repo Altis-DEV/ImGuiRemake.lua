@@ -90,6 +90,15 @@ function Tab:Button(options)
     return self.Window.ButtonModule.new(self, options)
 end
 
+function Tab:Toggle(options)
+    if not self.Window.ToggleModule then
+        warn("ToggleModule chưa được load (Kiểm tra lại file init.lua)!")
+        return nil
+    end
+    return self.Window.ToggleModule.new(self, options)
+end
+
+
 -- Chọn Tab
 function Tab:Select()
     for _, tab in ipairs(self.Window.Tabs) do
