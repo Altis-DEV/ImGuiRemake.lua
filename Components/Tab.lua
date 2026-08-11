@@ -1,4 +1,4 @@
--- File: DepsoImGui/Components/Tab.lua
+-- File: ImGuiRemake.lua/Components/Tab.lua
 local Tab = {}
 Tab.__index = Tab
 
