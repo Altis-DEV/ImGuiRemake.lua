@@ -44,36 +44,36 @@ function Window.new(options, themeData, themeManager)
     self.Topbar.BorderSizePixel = 0
     self.Topbar.Parent = self.MainFrame
 
-    -- Tiêu đề (Đã chừa khoảng trống cho 2 nút rộng 38px + margin)
+    -- [1] Nút Collapse/Minimize (Góc bên trái cùng - Bự hơn chút)
+    self.CollapseBtn = Instance.new("TextButton")
+    self.CollapseBtn.Name = "CollapseBtn"
+    self.CollapseBtn.Size = UDim2.new(0, 38, 1, 0)
+    self.CollapseBtn.Position = UDim2.new(0, 0, 0, 0)
+    self.CollapseBtn.BackgroundTransparency = 1
+    self.CollapseBtn.Text = "▼"
+    self.CollapseBtn.TextSize = 14
+    self.CollapseBtn.Parent = self.Topbar
+
+    -- [2] Title Label (Nằm giữa CollapseBtn rộng 38px và CloseBtn rộng 38px)
     self.Title = Instance.new("TextLabel")
     self.Title.Name = "Title"
-    self.Title.Size = UDim2.new(1, -85, 1, 0)
-    self.Title.Position = UDim2.new(0, 10, 0, 0)
+    self.Title.Size = UDim2.new(1, -76, 1, 0) -- Trừ 38px bên trái và 38px bên phải
+    self.Title.Position = UDim2.new(0, 38, 0, 0)
     self.Title.BackgroundTransparency = 1
     self.Title.Text = self.TitleText
     self.Title.TextXAlignment = Enum.TextXAlignment.Left
     self.Title.TextSize = 14
     self.Title.Parent = self.Topbar
 
-    -- Nút Close (X) - Bự hơn (Rộng 38px, Font 16)
+    -- [3] Nút Close (Góc bên phải cùng - Bự hơn chút)
     self.CloseBtn = Instance.new("TextButton")
     self.CloseBtn.Name = "CloseBtn"
     self.CloseBtn.Size = UDim2.new(0, 38, 1, 0)
     self.CloseBtn.Position = UDim2.new(1, -38, 0, 0)
     self.CloseBtn.BackgroundTransparency = 1
-    self.CloseBtn.Text = "✕"
-    self.CloseBtn.TextSize = 16
+    self.CloseBtn.Text = "X"
+    self.CloseBtn.TextSize = 15
     self.CloseBtn.Parent = self.Topbar
-
-    -- Nút Collapse/Minimize (▼) - Bự hơn (Rộng 38px, Font 14)
-    self.CollapseBtn = Instance.new("TextButton")
-    self.CollapseBtn.Name = "CollapseBtn"
-    self.CollapseBtn.Size = UDim2.new(0, 38, 1, 0)
-    self.CollapseBtn.Position = UDim2.new(1, -76, 0, 0)
-    self.CollapseBtn.BackgroundTransparency = 1
-    self.CollapseBtn.Text = "▼"
-    self.CollapseBtn.TextSize = 14
-    self.CollapseBtn.Parent = self.Topbar
 
     -- 4. Tab Container (Scroll ngang)
     self.TabContainer = Instance.new("ScrollingFrame")
@@ -111,7 +111,7 @@ function Window.new(options, themeData, themeManager)
     self.ResizeCorner.TextXAlignment = Enum.TextXAlignment.Right
     self.ResizeCorner.TextYAlignment = Enum.TextYAlignment.Bottom
     self.ResizeCorner.BackgroundTransparency = 1
-    self.ResizeCorner.ZIndex = 10 -- Đảm bảo đè lên trên ElementContainer để dễ bấm
+    self.ResizeCorner.ZIndex = 10 -- Đảm bảo nằm đè lên trên ElementContainer
     self.ResizeCorner.Parent = self.MainFrame
 
     -- Áp dụng Theme & Khởi tạo Event
