@@ -81,6 +81,15 @@ function Tab.new(window, options)
     return self
 end
 
+-- [THÊM MỚI] Khởi tạo Button
+function Tab:Button(options)
+    if not self.Window.ButtonModule then
+        warn("ButtonModule chưa được load (Kiểm tra lại file init.lua)!")
+        return nil
+    end
+    return self.Window.ButtonModule.new(self, options)
+end
+
 -- Chọn Tab
 function Tab:Select()
     for _, tab in ipairs(self.Window.Tabs) do
