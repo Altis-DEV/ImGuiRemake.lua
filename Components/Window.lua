@@ -92,20 +92,22 @@ function Window.new(options, themeData, themeManager)
     TabLayout.Padding = UDim.new(0, 4)
     TabLayout.Parent = self.TabContainer
 
-    -- 5. Element Container
+    -- 5. Element Container (Đã chỉnh sửa tự co giãn scrollbar)
     self.ElementContainer = Instance.new("ScrollingFrame")
     self.ElementContainer.Name = "ElementContainer"
     self.ElementContainer.Size = UDim2.new(1, 0, 1, -65)
     self.ElementContainer.Position = UDim2.new(0, 0, 0, 65)
     self.ElementContainer.BorderSizePixel = 0
     self.ElementContainer.ScrollBarThickness = 4
+    self.ElementContainer.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    self.ElementContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
     self.ElementContainer.Parent = self.MainFrame
 
-    -- 6. Resize Corner - BỰ HƠN NHIỀU (35x35px)
+    -- 6. Resize Corner (Đã chỉnh tọa độ Y từ -35 lên -30)
     self.ResizeCorner = Instance.new("TextButton")
     self.ResizeCorner.Name = "ResizeCorner"
     self.ResizeCorner.Size = UDim2.new(0, 35, 0, 35)
-    self.ResizeCorner.Position = UDim2.new(1, -35, 1, -35)
+    self.ResizeCorner.Position = UDim2.new(1, -35, 1, -30)
     self.ResizeCorner.Text = "◢"
     self.ResizeCorner.TextSize = 22
     self.ResizeCorner.TextXAlignment = Enum.TextXAlignment.Right
