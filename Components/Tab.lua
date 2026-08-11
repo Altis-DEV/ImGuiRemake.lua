@@ -1,4 +1,4 @@
--- File: ImGuiRemake.lua/Components/Tab.lua
+-- File: DepsoImGui/Components/Tab.lua
 local Tab = {}
 Tab.__index = Tab
 
@@ -6,10 +6,11 @@ function Tab.new(window, options)
     local self = setmetatable({}, Tab)
     
     self.Window = window
-    self.Name = options.Name or "New Tab"
+    -- SỬA LỖI: Ưu tiên lấy Title, nếu không có thì lấy Name, không có nữa thì là "New Tab"
+    self.Name = options.Title or options.Name or "New Tab"
     self.Elements = {} 
     
-    -- [1] FIX LỖI VỊ TRÍ TAB (Ép CanvasSize Y về 0 để Center hoạt động chuẩn xác)
+    -- [1] FIX LỖI VỊ TRÍ & CANVAS (Ép CanvasSize Y về 0 để Center hoạt động chuẩn xác)
     self.Window.TabContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
     
     local tabLayout = self.Window.TabContainer:FindFirstChildOfClass("UIListLayout")
@@ -27,14 +28,14 @@ function Tab.new(window, options)
     -- [2] TẠO NÚT TAB (Tab Button)
     self.TabBtn = Instance.new("TextButton")
     self.TabBtn.Name = self.Name .. "_TabBtn"
-    self.TabBtn.Size = UDim2.new(0, 0, 0, 26) -- Kích thước nhỏ hơn TabContainer một chút
+    self.TabBtn.Size = UDim2.new(0, 0, 0, 26) -- Kích thước nhỏ hơn TabContainer (35px)
     self.TabBtn.AutomaticSize = Enum.AutomaticSize.X 
     
     self.TabBtn.BackgroundColor3 = self.Window.ThemeData.Background
     self.TabBtn.BorderColor3 = self.Window.ThemeData.Border
     self.TabBtn.BorderSizePixel = 1 -- Viền cho Tab
     
-    self.TabBtn.Text = self.Name
+    self.TabBtn.Text = self.Name -- Lấy tên ngay tại đây
     self.TabBtn.TextColor3 = self.Window.ThemeData.Text
     self.TabBtn.TextSize = 13
     self.TabBtn.Font = self.Window.CurrentFont
@@ -112,7 +113,7 @@ function Tab:UpdateTheme(theme)
     end
 end
 
--- [Đã khôi phục] Đổi tên Tab 
+-- Đổi tên Tab (Vẫn giữ nguyên method này)
 function Tab:SetTitle(newTitle)
     self.Name = tostring(newTitle)
     self.TabBtn.Text = self.Name
