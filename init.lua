@@ -1,4 +1,4 @@
--- File: ImGuiRemake/init.lua
+-- File: ImGuiRemake.lua/init.lua
 local ImGui = {}
 
 -- Đường dẫn gốc đến Repository của bạn
