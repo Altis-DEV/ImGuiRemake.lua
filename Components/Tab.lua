@@ -2,97 +2,120 @@
 local Tab = {}
 Tab.__index = Tab
 
-local TweenService = game:GetService("TweenService")
-
 function Tab.new(window, options)
     local self = setmetatable({}, Tab)
     
     self.Window = window
-    self.TitleText = options.Title or "New Tab"
+    self.Name = options.Name or "New Tab"
+    self.Elements = {} -- Mảng lưu trữ các element (Button, Toggle, Slider...) bên trong Tab này
     
-    -- 1. Nút Tab (nằm trong TabContainer của Window)
-    self.Button = Instance.new("TextButton")
-    self.Button.Name = self.TitleText .. "_Tab"
-    self.Button.Size = UDim2.new(0, 0, 1, 0) -- Chiều cao full TabContainer, ngang 0 để tự scale
-    self.Button.AutomaticSize = Enum.AutomaticSize.X -- Tự co giãn ngang theo Text
-    self.Button.BackgroundColor3 = window.ThemeData.Tab
-    self.Button.BorderSizePixel = 0
-    self.Button.Text = self.TitleText
-    self.Button.TextColor3 = window.ThemeData.Text
-    self.Button.Font = window.CurrentFont
-    self.Button.TextSize = 14
-    self.Button.Parent = window.TabContainer
-
-    -- Padding để chữ không bị sát lề nút
-    local Padding = Instance.new("UIPadding")
-    Padding.PaddingLeft = UDim.new(0, 12)
-    Padding.PaddingRight = UDim.new(0, 12)
-    Padding.Parent = self.Button
-
-    -- 2. Tab Container (Khung chứa Element cho riêng tab này)
-    -- Thay vì bỏ thẳng vào ElementContainer, ta bỏ vào 1 Frame trung gian để dễ ẩn/hiện
-    self.Container = Instance.new("Frame")
-    self.Container.Name = self.TitleText .. "_Container"
-    self.Container.Size = UDim2.new(1, 0, 0, 0)
-    self.Container.AutomaticSize = Enum.AutomaticSize.Y -- Tự co giãn dọc để ElementContainer cuộn
-    self.Container.BackgroundTransparency = 1
-    self.Container.Visible = false -- Mặc định ẩn
-    self.Container.Parent = window.ElementContainer
-
-    -- ListLayout cho các element bên trong Tab
-    local Layout = Instance.new("UIListLayout")
-    Layout.SortOrder = Enum.SortOrder.LayoutOrder
-    Layout.Padding = UDim.new(0, 5)
-    Layout.Parent = self.Container
-
-    -- Đưa tab vào danh sách quản lý của Window
-    table.insert(window.Tabs, self)
-
-    -- Logic khi nhấn vào Tab
-    self.Button.MouseButton1Click:Connect(function()
-        self:Select()
-    end)
-
-    -- Tự động Select nếu đây là tab đầu tiên
-    if #window.Tabs == 1 then
-        self:Select()
+    -- [1] FIX LỖI LAYOUT CHO WINDOW (Căn giữa các Tab theo chiều dọc)
+    local tabLayout = self.Window.TabContainer:FindFirstChildOfClass("UIListLayout")
+    if tabLayout then
+        tabLayout.VerticalAlignment = Enum.VerticalAlignment.Center
     end
 
+    -- Thêm Padding 2 đầu cho TabContainer để các tab không bị dính chặt vào lề trái
+    if not self.Window.TabContainer:FindFirstChildOfClass("UIPadding") then
+        local containerPadding = Instance.new("UIPadding")
+        containerPadding.PaddingLeft = UDim.new(0, 6)
+        containerPadding.PaddingRight = UDim.new(0, 6)
+        containerPadding.Parent = self.Window.TabContainer
+    end
+
+    -- [2] TẠO NÚT TAB (Tab Button)
+    self.TabBtn = Instance.new("TextButton")
+    self.TabBtn.Name = self.Name .. "_TabBtn"
+    -- Chiều cao 26px (Nhỏ hơn TabContainer 35px một chút)
+    self.TabBtn.Size = UDim2.new(0, 0, 0, 26) 
+    self.TabBtn.AutomaticSize = Enum.AutomaticSize.X -- Tự động mở rộng chiều ngang theo Text
+    
+    self.TabBtn.BackgroundColor3 = self.Window.ThemeData.Background
+    self.TabBtn.BorderColor3 = self.Window.ThemeData.Border
+    self.TabBtn.BorderSizePixel = 1 -- THÊM BORDER
+    
+    self.TabBtn.Text = self.Name
+    self.TabBtn.TextColor3 = self.Window.ThemeData.Text
+    self.TabBtn.TextSize = 13
+    self.TabBtn.Font = self.Window.CurrentFont
+    self.TabBtn.Parent = self.Window.TabContainer
+    
+    -- Padding cho Text bên trong Tab (tạo khoảng trống 2 bên viền)
+    local btnPadding = Instance.new("UIPadding")
+    btnPadding.PaddingLeft = UDim.new(0, 12)
+    btnPadding.PaddingRight = UDim.new(0, 12)
+    btnPadding.Parent = self.TabBtn
+
+    -- [3] TẠO KHUNG CHỨA NỘI DUNG (Content Frame)
+    self.ContentFrame = Instance.new("Frame")
+    self.ContentFrame.Name = self.Name .. "_Content"
+    self.ContentFrame.Size = UDim2.new(1, 0, 0, 0)
+    self.ContentFrame.AutomaticSize = Enum.AutomaticSize.Y
+    self.ContentFrame.BackgroundTransparency = 1
+    self.ContentFrame.Visible = false -- Ẩn mặc định
+    self.ContentFrame.Parent = self.Window.ElementContainer
+    
+    local contentLayout = Instance.new("UIListLayout")
+    contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    contentLayout.Padding = UDim.new(0, 5) -- Khoảng cách giữa các Element
+    contentLayout.Parent = self.ContentFrame
+    
+    local contentPadding = Instance.new("UIPadding")
+    contentPadding.PaddingTop = UDim.new(0, 6)
+    contentPadding.PaddingBottom = UDim.new(0, 6)
+    contentPadding.PaddingLeft = UDim.new(0, 6)
+    contentPadding.PaddingRight = UDim.new(0, 8)
+    contentPadding.Parent = self.ContentFrame
+
+    -- [4] LOGIC HOẠT ĐỘNG
+    table.insert(self.Window.Tabs, self)
+    
+    self.TabBtn.MouseButton1Click:Connect(function()
+        self:Select()
+    end)
+    
+    -- Nếu đây là Tab đầu tiên được tạo, tự động chọn nó
+    if #self.Window.Tabs == 1 then
+        self:Select()
+    end
+    
     return self
 end
 
-function Tab:SetTitle(newTitle)
-    self.TitleText = tostring(newTitle)
-    self.Button.Text = self.TitleText
-    self.Button.Name = self.TitleText .. "_Tab"
-    self.Container.Name = self.TitleText .. "_Container"
-end
-
+-- Hàm Kích hoạt/Chọn Tab này
 function Tab:Select()
-    -- 1. Bỏ chọn tất cả các Tab khác
-    for _, otherTab in ipairs(self.Window.Tabs) do
-        otherTab.Container.Visible = false
-        TweenService:Create(otherTab.Button, TweenInfo.new(0.2), {
-            BackgroundColor3 = self.Window.ThemeData.Tab
-        }):Play()
+    -- Ẩn toàn bộ Tab khác và reset màu
+    for _, tab in ipairs(self.Window.Tabs) do
+        tab.ContentFrame.Visible = false
+        tab.TabBtn.BackgroundColor3 = self.Window.ThemeData.Background
+        tab.TabBtn.TextColor3 = self.Window.ThemeData.Text
     end
-
-    -- 2. Chọn Tab này
-    self.Container.Visible = true
-    TweenService:Create(self.Button, TweenInfo.new(0.2), {
-        BackgroundColor3 = self.Window.ThemeData.TabHighlight
-    }):Play()
+    
+    -- Hiện Tab này và Highlight màu (Sử dụng màu Accent)
+    self.ContentFrame.Visible = true
+    self.TabBtn.BackgroundColor3 = self.Window.ThemeData.Accent
+    -- Đổi màu chữ thành trắng hoặc đen tùy thuộc vào độ sáng của màu Accent (ở đây set mặc định là trắng cho đẹp)
+    self.TabBtn.TextColor3 = Color3.fromRGB(255, 255, 255) 
 end
 
--- Hàm nội bộ: Dùng để Window gọi khi đổi Theme (Window:Theme(...))
+-- Hàm cập nhật màu sắc khi Window đổi Theme
 function Tab:UpdateTheme(theme)
-    self.Button.TextColor3 = theme.Text
-    if self.Container.Visible then
-        self.Button.BackgroundColor3 = theme.TabHighlight
+    if self.ContentFrame.Visible then
+        self.TabBtn.BackgroundColor3 = theme.Accent
+        self.TabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     else
-        self.Button.BackgroundColor3 = theme.Tab
+        self.TabBtn.BackgroundColor3 = theme.Background
+        self.TabBtn.TextColor3 = theme.Text
+    end
+    self.TabBtn.BorderColor3 = theme.Border
+    self.TabBtn.Font = self.Window.CurrentFont
+    
+    -- Cập nhật theme cho các Elements bên trong (nếu có)
+    for _, element in ipairs(self.Elements) do
+        if element.UpdateTheme then
+            element:UpdateTheme(theme)
+        end
     end
 end
 
 return Tab
-
