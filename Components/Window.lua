@@ -45,35 +45,36 @@ function Window.new(options, themeData, themeManager)
     self.Topbar.BorderSizePixel = 0
     self.Topbar.Parent = self.MainFrame
 
+    -- [1] Nút Collapse/Minimize (Góc bên trái cùng)
+    self.CollapseBtn = Instance.new("TextButton")
+    self.CollapseBtn.Name = "CollapseBtn"
+    self.CollapseBtn.Size = UDim2.new(0, 30, 0, 30)
+    self.CollapseBtn.Position = UDim2.new(0, 0, 0, 0)
+    self.CollapseBtn.BackgroundTransparency = 1
+    self.CollapseBtn.Text = "▼"
+    self.CollapseBtn.TextSize = 12
+    self.CollapseBtn.Parent = self.Topbar
+
+    -- [2] Title Label (Nằm kế bên nút Minimize)
     self.Title = Instance.new("TextLabel")
     self.Title.Name = "Title"
-    self.Title.Size = UDim2.new(1, -70, 1, 0)
-    self.Title.Position = UDim2.new(0, 10, 0, 0)
+    self.Title.Size = UDim2.new(1, -60, 1, 0) -- Trừ 30px bên trái (Minimize) và 30px bên phải (Close)
+    self.Title.Position = UDim2.new(0, 30, 0, 0)
     self.Title.BackgroundTransparency = 1
     self.Title.Text = self.TitleText
     self.Title.TextXAlignment = Enum.TextXAlignment.Left
     self.Title.TextSize = 14
     self.Title.Parent = self.Topbar
 
-    -- Nút Close (X)
+    -- [3] Nút Close (Góc bên phải cùng, dùng chữ 'X' chuẩn ASCII để tránh lỗi font)
     self.CloseBtn = Instance.new("TextButton")
     self.CloseBtn.Name = "CloseBtn"
     self.CloseBtn.Size = UDim2.new(0, 30, 0, 30)
     self.CloseBtn.Position = UDim2.new(1, -30, 0, 0)
     self.CloseBtn.BackgroundTransparency = 1
-    self.CloseBtn.Text = "✕"
-    self.CloseBtn.TextSize = 14
+    self.CloseBtn.Text = "X"
+    self.CloseBtn.TextSize = 13
     self.CloseBtn.Parent = self.Topbar
-
-    -- Nút Collapse/Minimize (Mũi tên)
-    self.CollapseBtn = Instance.new("TextButton")
-    self.CollapseBtn.Name = "CollapseBtn"
-    self.CollapseBtn.Size = UDim2.new(0, 30, 0, 30)
-    self.CollapseBtn.Position = UDim2.new(1, -60, 0, 0)
-    self.CollapseBtn.BackgroundTransparency = 1
-    self.CollapseBtn.Text = "▼"
-    self.CollapseBtn.TextSize = 12
-    self.CollapseBtn.Parent = self.Topbar
 
     -- 4. Tab Container (Scroll ngang)
     self.TabContainer = Instance.new("ScrollingFrame")
@@ -277,3 +278,4 @@ function Window:Theme(themeName)
 end
 
 return Window
+
