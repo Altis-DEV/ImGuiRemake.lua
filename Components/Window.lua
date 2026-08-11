@@ -1,4 +1,4 @@
--- File: DepsoImGui/Components/Window.lua
+-- File: Components/Window.lua
 local Window = {}
 Window.__index = Window
 
@@ -6,19 +6,22 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
 
-function Window.new(options, themeData)
+function Window.new(options, themeData, themeManager)
     local self = setmetatable({}, Window)
     
-    -- Các thông số mặc định
-    self.TitleText = options.Title or "Window"
+    -- Khởi tạo thông số
+    options = options or {}
+    self.TitleText = options.Title or "ImGui Window"
     self.Size = options.Size or UDim2.new(0, 500, 0, 450)
     self.MinSize = options.MinSize or Vector2.new(300, 250)
     self.Position = options.Position or UDim2.new(0.5, -250, 0.5, -225)
+    
     self.ThemeData = themeData
+    self.ThemeManager = themeManager
     self.IsMinimized = false
     self.CurrentFont = Enum.Font.RobotoMono
-    
-    local targetParent = gethui and gethui() or CoreGui
+
+    local targetParent = gethui and gethui() or (CoreGui:FindFirstChild("RobloxGui") or CoreGui)
 
     -- 1. ScreenGui
     self.ScreenGui = Instance.new("ScreenGui")
@@ -26,8 +29,9 @@ function Window.new(options, themeData)
     self.ScreenGui.ResetOnSpawn = false
     self.ScreenGui.Parent = targetParent
 
-    -- 2. Main Frame (Bật ClipsDescendants để làm animation thu gọn mượt)
+    -- 2. Main Frame
     self.MainFrame = Instance.new("Frame")
+    self.MainFrame.Name = "MainFrame"
     self.MainFrame.Size = self.Size
     self.MainFrame.Position = self.Position
     self.MainFrame.ClipsDescendants = true
@@ -36,11 +40,13 @@ function Window.new(options, themeData)
 
     -- 3. Topbar
     self.Topbar = Instance.new("Frame")
+    self.Topbar.Name = "Topbar"
     self.Topbar.Size = UDim2.new(1, 0, 0, 30)
     self.Topbar.BorderSizePixel = 0
     self.Topbar.Parent = self.MainFrame
 
     self.Title = Instance.new("TextLabel")
+    self.Title.Name = "Title"
     self.Title.Size = UDim2.new(1, -70, 1, 0)
     self.Title.Position = UDim2.new(0, 10, 0, 0)
     self.Title.BackgroundTransparency = 1
@@ -49,50 +55,55 @@ function Window.new(options, themeData)
     self.Title.TextSize = 14
     self.Title.Parent = self.Topbar
 
-    -- Nút X (Bên phải cùng)
+    -- Nút Close (X)
     self.CloseBtn = Instance.new("TextButton")
+    self.CloseBtn.Name = "CloseBtn"
     self.CloseBtn.Size = UDim2.new(0, 30, 0, 30)
     self.CloseBtn.Position = UDim2.new(1, -30, 0, 0)
     self.CloseBtn.BackgroundTransparency = 1
     self.CloseBtn.Text = "✕"
-    self.CloseBtn.TextSize = 16
+    self.CloseBtn.TextSize = 14
     self.CloseBtn.Parent = self.Topbar
 
-    -- Nút Mũi tên (Kế bên nút X)
+    -- Nút Collapse/Minimize (Mũi tên)
     self.CollapseBtn = Instance.new("TextButton")
+    self.CollapseBtn.Name = "CollapseBtn"
     self.CollapseBtn.Size = UDim2.new(0, 30, 0, 30)
     self.CollapseBtn.Position = UDim2.new(1, -60, 0, 0)
     self.CollapseBtn.BackgroundTransparency = 1
     self.CollapseBtn.Text = "▼"
-    self.CollapseBtn.TextSize = 14
+    self.CollapseBtn.TextSize = 12
     self.CollapseBtn.Parent = self.Topbar
 
     -- 4. Tab Container (Scroll ngang)
     self.TabContainer = Instance.new("ScrollingFrame")
-    self.TabContainer.Size = UDim2.new(1, 0, 0, 40)
+    self.TabContainer.Name = "TabContainer"
+    self.TabContainer.Size = UDim2.new(1, 0, 0, 35)
     self.TabContainer.Position = UDim2.new(0, 0, 0, 30)
     self.TabContainer.BorderSizePixel = 0
     self.TabContainer.ScrollBarThickness = 2
     self.TabContainer.ScrollingDirection = Enum.ScrollingDirection.X
-    self.TabContainer.AutomaticCanvasSize = Enum.AutomaticSize.X -- Tự co giãn
+    self.TabContainer.AutomaticCanvasSize = Enum.AutomaticSize.X
     self.TabContainer.Parent = self.MainFrame
     
     local TabLayout = Instance.new("UIListLayout")
     TabLayout.FillDirection = Enum.FillDirection.Horizontal
     TabLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    TabLayout.Padding = UDim.new(0, 5)
+    TabLayout.Padding = UDim.new(0, 4)
     TabLayout.Parent = self.TabContainer
 
     -- 5. Element Container
     self.ElementContainer = Instance.new("ScrollingFrame")
-    self.ElementContainer.Size = UDim2.new(1, 0, 1, -70)
-    self.ElementContainer.Position = UDim2.new(0, 0, 0, 70)
+    self.ElementContainer.Name = "ElementContainer"
+    self.ElementContainer.Size = UDim2.new(1, 0, 1, -65)
+    self.ElementContainer.Position = UDim2.new(0, 0, 0, 65)
     self.ElementContainer.BorderSizePixel = 0
     self.ElementContainer.ScrollBarThickness = 4
     self.ElementContainer.Parent = self.MainFrame
 
-    -- 6. Resize Corner (Góc dưới bên phải)
+    -- 6. Resize Corner
     self.ResizeCorner = Instance.new("TextButton")
+    self.ResizeCorner.Name = "ResizeCorner"
     self.ResizeCorner.Size = UDim2.new(0, 15, 0, 15)
     self.ResizeCorner.Position = UDim2.new(1, -15, 1, -15)
     self.ResizeCorner.Text = "◢"
@@ -100,7 +111,7 @@ function Window.new(options, themeData)
     self.ResizeCorner.BackgroundTransparency = 1
     self.ResizeCorner.Parent = self.MainFrame
 
-    -- Apply Theme và Logic ban đầu
+    -- Áp dụng Theme & Khởi tạo Event
     self:ApplyTheme(self.ThemeData)
     self:InitLogic()
 
@@ -118,12 +129,11 @@ function Window:ApplyTheme(theme)
     self.TabContainer.BackgroundColor3 = theme.TabContainer
     self.ElementContainer.BackgroundColor3 = theme.ElementContainer
     self.ResizeCorner.TextColor3 = theme.Accent
-    -- Cập nhật font luôn
     self:Font(self.CurrentFont)
 end
 
 function Window:InitLogic()
-    -- ANIMATION ĐÓNG MỞ (MINIMIZE)
+    -- Mũi tên Toggle Minimize
     self.CollapseBtn.MouseButton1Click:Connect(function()
         if self.IsMinimized then
             self:Open()
@@ -132,17 +142,16 @@ function Window:InitLogic()
         end
     end)
 
-    -- NÚT X (DESTROY)
+    -- Nút X (Destroy)
     self.CloseBtn.MouseButton1Click:Connect(function()
         self:Destroy()
     end)
 
-    -- DRAGGING LOGIC (Anti Multi-Touch & Anti Slip)
-    local dragInput, dragStart, startPos
+    -- DRAG SYSTEM (Hỗ trợ PC + Mobile, Anti Multi-Touch, Khóa 1 nguồn chạm)
     local isDragging = false
+    local dragInput, dragStart, startPos
 
     self.Topbar.InputBegan:Connect(function(input)
-        -- Chỉ nhận khi chạm trực tiếp vào Topbar (không phải các nút con)
         if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
             if not isDragging then
                 isDragging = true
@@ -156,7 +165,10 @@ function Window:InitLogic()
     UserInputService.InputChanged:Connect(function(input)
         if input == dragInput and isDragging then
             local delta = input.Position - dragStart
-            self.MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+            self.MainFrame.Position = UDim2.new(
+                startPos.X.Scale, startPos.X.Offset + delta.X,
+                startPos.Y.Scale, startPos.Y.Offset + delta.Y
+            )
         end
     end)
 
@@ -167,7 +179,7 @@ function Window:InitLogic()
         end
     end)
 
-    -- RESIZING LOGIC (Giới hạn bởi MinSize)
+    -- RESIZE SYSTEM (Giới hạn bởi MinSize)
     local isResizing = false
     local resizeInput, resizeStart, startSize
 
@@ -188,7 +200,7 @@ function Window:InitLogic()
             local newWidth = math.max(self.MinSize.X, startSize.X.Offset + delta.X)
             local newHeight = math.max(self.MinSize.Y, startSize.Y.Offset + delta.Y)
             self.MainFrame.Size = UDim2.new(0, newWidth, 0, newHeight)
-            self.Size = self.MainFrame.Size -- Lưu lại size mới
+            self.Size = self.MainFrame.Size
         end
     end)
 
@@ -200,7 +212,7 @@ function Window:InitLogic()
     end)
 end
 
--- ================= CÁC METHOD API CỦA WINDOW =================
+-- ================= CÁC HÀM API DÀNH CHO WINDOW =================
 
 function Window:Center()
     local screenSize = self.ScreenGui.AbsoluteSize
@@ -209,32 +221,31 @@ function Window:Center()
 end
 
 function Window:SetTitle(newTitle)
-    self.Title.Text = tostring(newTitle)
+    self.TitleText = tostring(newTitle)
+    self.Title.Text = self.TitleText
 end
 
 function Window:SetVisible(state)
     self.ScreenGui.Enabled = state
 end
 
--- Thu gọn UI
 function Window:Close()
     if self.IsMinimized then return end
     self.IsMinimized = true
     
     TweenService:Create(self.MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-        Size = UDim2.new(0, self.MainFrame.Size.X.Offset, 0, 30) -- Chỉ để lại topbar
+        Size = UDim2.new(0, self.MainFrame.Size.X.Offset, 0, 30)
     }):Play()
     
     TweenService:Create(self.CollapseBtn, TweenInfo.new(0.3), {Rotation = -90}):Play()
 end
 
--- Mở rộng UI
 function Window:Open()
     if not self.IsMinimized then return end
     self.IsMinimized = false
     
     TweenService:Create(self.MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-        Size = self.Size -- Trả về size đã lưu
+        Size = self.Size
     }):Play()
     
     TweenService:Create(self.CollapseBtn, TweenInfo.new(0.3), {Rotation = 0}):Play()
@@ -244,7 +255,6 @@ function Window:Destroy()
     self.ScreenGui:Destroy()
 end
 
--- Hỗ trợ Font Enum hoặc rbxassetid
 function Window:Font(fontType)
     self.CurrentFont = fontType
     if typeof(fontType) == "string" and string.match(fontType, "rbxassetid") then
@@ -260,10 +270,10 @@ function Window:Font(fontType)
 end
 
 function Window:Theme(themeName)
-    local ThemeManager = require(script.Parent.Parent.Theme) -- Trỏ ngược ra file Theme
-    local newTheme = ThemeManager:GetTheme(themeName)
-    self:ApplyTheme(newTheme)
+    if self.ThemeManager then
+        local newTheme = self.ThemeManager:GetTheme(themeName)
+        self:ApplyTheme(newTheme)
+    end
 end
 
 return Window
-
