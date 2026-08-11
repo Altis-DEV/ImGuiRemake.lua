@@ -1,4 +1,4 @@
--- File: DepsoImGui/Theme.lua
+-- File: ImGuiRemake/Theme.lua
 local Theme = {}
 
 Theme.Themes = {
