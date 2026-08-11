@@ -1,4 +1,4 @@
--- Components/Window.lua
+-- ImGuiRemake/Components/Window.lua
 
 local Window = {}
 Window.__index = Window
