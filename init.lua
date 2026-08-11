@@ -1,20 +1,24 @@
--- File: DepsoImGui/init.lua
+-- File: init.lua
 local ImGui = {}
-local Theme = require(script.Theme)
-local WindowModule = require(script.Components.Window)
 
--- Cho phép gọi hàm tạo Theme từ thẳng ImGui (rất tiện dụng)
+-- Đường dẫn gốc đến Repository của bạn
+local repo = "https://raw.githubusercontent.com/Altis-DEV/ImGuiRemake.lua/refs/heads/main/"
+
+-- Tải các Module thông qua HTTPGet từ GitHub của bạn
+local Theme = loadstring(game:HttpGet(repo .. "Theme.lua"))()
+local WindowModule = loadstring(game:HttpGet(repo .. "Components/Window.lua"))()
+
+-- Hàm tạo Theme mới
 function ImGui:CreateTheme(name, colors)
     Theme:CreateTheme(name, colors)
 end
 
--- Khởi tạo Window chuẩn theo format yêu cầu
+-- Hàm tạo Cửa sổ chính
 function ImGui:CreateWindow(options)
-    -- Lấy theme mặc định hoặc theme được chỉ định
     local currentTheme = Theme:GetTheme("Default")
     
-    -- Tạo object Window
-    local newWindow = WindowModule.new(options, currentTheme)
+    -- Truyền ThemeManager (biến Theme) vào WindowModule để dùng cho phương thức Window:Theme()
+    local newWindow = WindowModule.new(options, currentTheme, Theme)
     
     return newWindow
 end
