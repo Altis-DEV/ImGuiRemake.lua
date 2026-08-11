@@ -1,4 +1,4 @@
--- File: ImGuiRemake/Theme.lua
+-- File: ImGuiRemake.lua/Theme.lua
 local Theme = {}
 
 Theme.Themes = {
