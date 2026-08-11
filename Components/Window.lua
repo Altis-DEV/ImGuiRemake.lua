@@ -1,5 +1,4 @@
--- ImGuiRemake.lua/Components/Window.lua
-
+-- File: ImGuiRemake.lua/Components/Window.lua
 local Window = {}
 Window.__index = Window
 
@@ -21,6 +20,8 @@ function Window.new(options, themeData, themeManager)
     self.ThemeManager = themeManager
     self.IsMinimized = false
     self.CurrentFont = Enum.Font.RobotoMono
+    
+    self.Tabs = {} -- Khởi tạo mảng lưu trữ các Tab
 
     local targetParent = gethui and gethui() or (CoreGui:FindFirstChild("RobloxGui") or CoreGui)
 
@@ -46,7 +47,7 @@ function Window.new(options, themeData, themeManager)
     self.Topbar.BorderSizePixel = 0
     self.Topbar.Parent = self.MainFrame
 
-    -- [1] Nút Collapse/Minimize (Góc bên trái cùng - Bự hơn chút)
+    -- [1] Nút Collapse/Minimize
     self.CollapseBtn = Instance.new("TextButton")
     self.CollapseBtn.Name = "CollapseBtn"
     self.CollapseBtn.Size = UDim2.new(0, 38, 1, 0)
@@ -56,10 +57,10 @@ function Window.new(options, themeData, themeManager)
     self.CollapseBtn.TextSize = 14
     self.CollapseBtn.Parent = self.Topbar
 
-    -- [2] Title Label (Nằm giữa CollapseBtn rộng 38px và CloseBtn rộng 38px)
+    -- [2] Title Label
     self.Title = Instance.new("TextLabel")
     self.Title.Name = "Title"
-    self.Title.Size = UDim2.new(1, -76, 1, 0) -- Trừ 38px bên trái và 38px bên phải
+    self.Title.Size = UDim2.new(1, -76, 1, 0)
     self.Title.Position = UDim2.new(0, 38, 0, 0)
     self.Title.BackgroundTransparency = 1
     self.Title.Text = self.TitleText
@@ -67,7 +68,7 @@ function Window.new(options, themeData, themeManager)
     self.Title.TextSize = 14
     self.Title.Parent = self.Topbar
 
-    -- [3] Nút Close (Góc bên phải cùng - Bự hơn chút)
+    -- [3] Nút Close
     self.CloseBtn = Instance.new("TextButton")
     self.CloseBtn.Name = "CloseBtn"
     self.CloseBtn.Size = UDim2.new(0, 38, 1, 0)
@@ -94,7 +95,7 @@ function Window.new(options, themeData, themeManager)
     TabLayout.Padding = UDim.new(0, 4)
     TabLayout.Parent = self.TabContainer
 
-    -- 5. Element Container (Đã chỉnh sửa tự co giãn scrollbar)
+    -- 5. Element Container
     self.ElementContainer = Instance.new("ScrollingFrame")
     self.ElementContainer.Name = "ElementContainer"
     self.ElementContainer.Size = UDim2.new(1, 0, 1, -65)
@@ -105,17 +106,17 @@ function Window.new(options, themeData, themeManager)
     self.ElementContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
     self.ElementContainer.Parent = self.MainFrame
 
-    -- 6. Resize Corner (Đã chỉnh tọa độ Y từ -35 lên -30)
+    -- 6. Resize Corner
     self.ResizeCorner = Instance.new("TextButton")
     self.ResizeCorner.Name = "ResizeCorner"
     self.ResizeCorner.Size = UDim2.new(0, 35, 0, 35)
-    self.ResizeCorner.Position = UDim2.new(1, -35, 1, -30)
+    self.ResizeCorner.Position = UDim2.new(1, -35, 1, -30) -- Fix lệch text
     self.ResizeCorner.Text = "◢"
     self.ResizeCorner.TextSize = 22
     self.ResizeCorner.TextXAlignment = Enum.TextXAlignment.Right
     self.ResizeCorner.TextYAlignment = Enum.TextYAlignment.Bottom
     self.ResizeCorner.BackgroundTransparency = 1
-    self.ResizeCorner.ZIndex = 10 -- Đảm bảo nằm đè lên trên ElementContainer
+    self.ResizeCorner.ZIndex = 10
     self.ResizeCorner.Parent = self.MainFrame
 
     -- Áp dụng Theme & Khởi tạo Event
@@ -137,6 +138,13 @@ function Window:ApplyTheme(theme)
     self.ElementContainer.BackgroundColor3 = theme.ElementContainer
     self.ResizeCorner.TextColor3 = theme.Accent
     self:Font(self.CurrentFont)
+
+    -- Đổi màu cho tất cả các Tab hiện có
+    if self.Tabs then
+        for _, tab in ipairs(self.Tabs) do
+            tab:UpdateTheme(theme)
+        end
+    end
 end
 
 function Window:InitLogic()
@@ -154,7 +162,7 @@ function Window:InitLogic()
         self:Destroy()
     end)
 
-    -- DRAG SYSTEM (Hỗ trợ PC + Mobile, Anti Multi-Touch, Khóa 1 nguồn chạm)
+    -- DRAG SYSTEM
     local isDragging = false
     local dragInput, dragStart, startPos
 
@@ -186,7 +194,7 @@ function Window:InitLogic()
         end
     end)
 
-    -- RESIZE SYSTEM (Giới hạn bởi MinSize)
+    -- RESIZE SYSTEM
     local isResizing = false
     local resizeInput, resizeStart, startSize
 
@@ -281,6 +289,15 @@ function Window:Theme(themeName)
         local newTheme = self.ThemeManager:GetTheme(themeName)
         self:ApplyTheme(newTheme)
     end
+end
+
+-- Hàm tạo Tab từ Window
+function Window:Tab(options)
+    if not self._TabModule then 
+        warn("TabModule chưa được load (Kiểm tra lại file init.lua)!") 
+        return nil
+    end
+    return self._TabModule.new(self, options)
 end
 
 return Window
