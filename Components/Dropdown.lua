@@ -1,9 +1,9 @@
 -- File: ImGuiRemake.lua/Components/Dropdown.lua
 
-local TweenService = game:GetService("TweenService")
-
 local Dropdown = {}
 Dropdown.__index = Dropdown
+
+local TweenService = game:GetService("TweenService")
 
 ------------------------------------------------------------
 -- CONSTANTS
@@ -11,15 +11,21 @@ Dropdown.__index = Dropdown
 
 local ELEMENT_HEIGHT = 30
 local OPTION_HEIGHT = 30
+
+-- Dropdown chiếm 1/2 chiều rộng ElementContainer
 local DROPDOWN_WIDTH_SCALE = 0.5
+
+-- Hiển thị tối đa 3 option trước khi scrollbar xuất hiện
 local MAX_VISIBLE_OPTIONS = 3
+
+local ARROW_ROTATION_CLOSED = -90
+local ARROW_ROTATION_OPEN = 0
 
 ------------------------------------------------------------
 -- CONSTRUCTOR
 ------------------------------------------------------------
 
 function Dropdown.new(tab, options)
-
     options = options or {}
 
     local self = setmetatable({}, Dropdown)
@@ -27,36 +33,96 @@ function Dropdown.new(tab, options)
     self.Tab = tab
     self.Window = tab.Window
 
-    self.Title = tostring(options.Title or "Dropdown")
+    self.Title = tostring(
+        options.Title or "Dropdown"
+    )
 
-    self.Values = options.Value or {}
     self.Multi = options.Multi == true
 
-    self.Callback = options.Callback or function() end
+    self.Callback =
+        type(options.Callback) == "function"
+        and options.Callback
+        or function() end
 
+    self.Values = {}
     self.Selected = {}
 
     self.Opened = false
+    self.Destroyed = false
 
     --------------------------------------------------------
-    -- CONTAINER
+    -- LOAD VALUES
+    --------------------------------------------------------
+
+    if type(options.Value) == "table" then
+        for _, value in ipairs(options.Value) do
+            table.insert(
+                self.Values,
+                value
+            )
+        end
+    end
+
+    --------------------------------------------------------
+    -- INITIAL SELECTED
+    --------------------------------------------------------
+
+    if type(options.Selected) == "table" then
+        for _, value in ipairs(options.Selected) do
+            if self:_ContainsValue(value) then
+                self.Selected[value] = true
+            end
+        end
+
+    elseif options.Selected ~= nil then
+        if self:_ContainsValue(options.Selected) then
+            self.Selected[options.Selected] = true
+        end
+    end
+
+    local theme = self.Window.ThemeData
+
+    --------------------------------------------------------
+    -- MAIN CONTAINER
     --------------------------------------------------------
 
     self.Container = Instance.new("Frame")
-    self.Container.Name = self.Title .. "_Dropdown"
-    self.Container.Size = UDim2.new(1, 0, 0, ELEMENT_HEIGHT)
-    self.Container.AutomaticSize = Enum.AutomaticSize.Y
+    self.Container.Name =
+        self.Title .. "_Dropdown"
+
+    self.Container.Size =
+        UDim2.new(
+            1,
+            0,
+            0,
+            ELEMENT_HEIGHT
+        )
+
+    self.Container.AutomaticSize =
+        Enum.AutomaticSize.Y
+
     self.Container.BackgroundTransparency = 1
-    self.Container.Parent = self.Tab.ContentFrame
+    self.Container.BorderSizePixel = 0
+    self.Container.Parent =
+        self.Tab.ContentFrame
 
     --------------------------------------------------------
-    -- TOP ROW
+    -- MAIN ROW
     --------------------------------------------------------
 
     self.MainRow = Instance.new("Frame")
     self.MainRow.Name = "MainRow"
-    self.MainRow.Size = UDim2.new(1, 0, 0, ELEMENT_HEIGHT)
+
+    self.MainRow.Size =
+        UDim2.new(
+            1,
+            0,
+            0,
+            ELEMENT_HEIGHT
+        )
+
     self.MainRow.BackgroundTransparency = 1
+    self.MainRow.BorderSizePixel = 0
     self.MainRow.Parent = self.Container
 
     --------------------------------------------------------
@@ -64,72 +130,116 @@ function Dropdown.new(tab, options)
     --------------------------------------------------------
 
     self.DropdownFrame = Instance.new("Frame")
-    self.DropdownFrame.Name = "DropdownFrame"
+    self.DropdownFrame.Name =
+        "DropdownFrame"
 
-    -- 1/2 ElementsContainer
     self.DropdownFrame.Size =
-        UDim2.new(DROPDOWN_WIDTH_SCALE, 0, 0, ELEMENT_HEIGHT)
+        UDim2.new(
+            DROPDOWN_WIDTH_SCALE,
+            0,
+            0,
+            ELEMENT_HEIGHT
+        )
+
+    self.DropdownFrame.Position =
+        UDim2.new(
+            0,
+            0,
+            0,
+            0
+        )
 
     self.DropdownFrame.BackgroundColor3 =
-        self.Window.ThemeData.DropdownFrame
-        or self.Window.ThemeData.Border
+        theme.DropdownFrame
+        or theme.Border
+        or Color3.fromRGB(38, 38, 38)
 
     self.DropdownFrame.BorderColor3 =
-        self.Window.ThemeData.Border
+        theme.Border
+        or Color3.fromRGB(60, 60, 60)
 
     self.DropdownFrame.BorderSizePixel = 1
-
-    self.DropdownFrame.Parent = self.MainRow
+    self.DropdownFrame.Parent =
+        self.MainRow
 
     --------------------------------------------------------
-    -- OPEN / CLOSE BUTTON
+    -- ARROW BUTTON
     --------------------------------------------------------
 
     self.ToggleButton = Instance.new("TextButton")
-    self.ToggleButton.Name = "ToggleButton"
+    self.ToggleButton.Name =
+        "ToggleButton"
 
     self.ToggleButton.Size =
-        UDim2.new(0, ELEMENT_HEIGHT, 1, 0)
+        UDim2.new(
+            0,
+            ELEMENT_HEIGHT,
+            1,
+            0
+        )
 
     self.ToggleButton.Position =
-        UDim2.new(0, 0, 0, 0)
+        UDim2.new(
+            0,
+            0,
+            0,
+            0
+        )
 
     self.ToggleButton.BackgroundTransparency = 1
+    self.ToggleButton.BorderSizePixel = 0
 
+    -- Luôn dùng ▼, chỉ xoay Rotation
     self.ToggleButton.Text = "▼"
 
+    -- Đóng = sang phải
+    self.ToggleButton.Rotation =
+        ARROW_ROTATION_CLOSED
+
     self.ToggleButton.TextSize = 14
-    self.ToggleButton.Font = self.Window.CurrentFont
+    self.ToggleButton.Font =
+        self.Window.CurrentFont
 
     self.ToggleButton.TextColor3 =
-        self.Window.ThemeData.Text
+        theme.Text
+        or Color3.fromRGB(255, 255, 255)
 
     self.ToggleButton.AutoButtonColor = false
-
-    self.ToggleButton.Parent = self.DropdownFrame
+    self.ToggleButton.Parent =
+        self.DropdownFrame
 
     --------------------------------------------------------
-    -- SELECTED VALUE LABEL
+    -- SELECTED VALUE
     --------------------------------------------------------
 
     self.ValueLabel = Instance.new("TextLabel")
     self.ValueLabel.Name = "Value"
 
     self.ValueLabel.Size =
-        UDim2.new(1, -ELEMENT_HEIGHT, 1, 0)
+        UDim2.new(
+            1,
+            -ELEMENT_HEIGHT,
+            1,
+            0
+        )
 
     self.ValueLabel.Position =
-        UDim2.new(0, ELEMENT_HEIGHT, 0, 0)
+        UDim2.new(
+            0,
+            ELEMENT_HEIGHT,
+            0,
+            0
+        )
 
     self.ValueLabel.BackgroundTransparency = 1
 
-    self.ValueLabel.Text = "None"
-
     self.ValueLabel.TextColor3 =
-        self.Window.ThemeData.Text
+        theme.Text
+        or Color3.fromRGB(255, 255, 255)
 
     self.ValueLabel.TextSize = 13
-    self.ValueLabel.Font = self.Window.CurrentFont
+    self.ValueLabel.Font =
+        self.Window.CurrentFont
 
     self.ValueLabel.TextXAlignment =
         Enum.TextXAlignment.Center
@@ -140,7 +250,8 @@ function Dropdown.new(tab, options)
     self.ValueLabel.TextTruncate =
         Enum.TextTruncate.AtEnd
 
-    self.ValueLabel.Parent = self.DropdownFrame
+    self.ValueLabel.Parent =
+        self.DropdownFrame
 
     --------------------------------------------------------
     -- TITLE
@@ -149,22 +260,34 @@ function Dropdown.new(tab, options)
     self.TitleLabel = Instance.new("TextLabel")
     self.TitleLabel.Name = "Title"
 
-    -- Phần còn lại nằm bên phải Dropdown
     self.TitleLabel.Size =
-        UDim2.new(1 - DROPDOWN_WIDTH_SCALE, -8, 1, 0)
+        UDim2.new(
+            1 - DROPDOWN_WIDTH_SCALE,
+            -8,
+            1,
+            0
+        )
 
     self.TitleLabel.Position =
-        UDim2.new(DROPDOWN_WIDTH_SCALE, 8, 0, 0)
+        UDim2.new(
+            DROPDOWN_WIDTH_SCALE,
+            8,
+            0,
+            0
+        )
 
     self.TitleLabel.BackgroundTransparency = 1
 
-    self.TitleLabel.Text = self.Title
+    self.TitleLabel.Text =
+        self.Title
 
     self.TitleLabel.TextColor3 =
-        self.Window.ThemeData.Text
+        theme.Text
+        or Color3.fromRGB(255, 255, 255)
 
     self.TitleLabel.TextSize = 13
-    self.TitleLabel.Font = self.Window.CurrentFont
+    self.TitleLabel.Font =
+        self.Window.CurrentFont
 
     self.TitleLabel.TextXAlignment =
         Enum.TextXAlignment.Left
@@ -172,28 +295,42 @@ function Dropdown.new(tab, options)
     self.TitleLabel.TextYAlignment =
         Enum.TextYAlignment.Center
 
-    self.TitleLabel.Parent = self.MainRow
+    self.TitleLabel.Parent =
+        self.MainRow
 
     --------------------------------------------------------
-    -- OPTIONS CONTAINER
+    -- OPTIONS FRAME
     --------------------------------------------------------
 
     self.OptionsFrame = Instance.new("ScrollingFrame")
-    self.OptionsFrame.Name = "Options"
+    self.OptionsFrame.Name =
+        "Options"
 
-    -- Cũng chỉ rộng 1/2
+    -- Cũng 50%
     self.OptionsFrame.Size =
-        UDim2.new(DROPDOWN_WIDTH_SCALE, 0, 0, 0)
+        UDim2.new(
+            DROPDOWN_WIDTH_SCALE,
+            0,
+            0,
+            0
+        )
 
     self.OptionsFrame.Position =
-        UDim2.new(0, 0, 0, ELEMENT_HEIGHT)
+        UDim2.new(
+            0,
+            0,
+            0,
+            ELEMENT_HEIGHT
+        )
 
     self.OptionsFrame.BackgroundColor3 =
-        self.Window.ThemeData.DropdownFrame
-        or self.Window.ThemeData.Border
+        theme.DropdownFrame
+        or theme.Border
+        or Color3.fromRGB(38, 38, 38)
 
     self.OptionsFrame.BorderColor3 =
-        self.Window.ThemeData.Border
+        theme.Border
+        or Color3.fromRGB(60, 60, 60)
 
     self.OptionsFrame.BorderSizePixel = 1
 
@@ -206,17 +343,28 @@ function Dropdown.new(tab, options)
         Enum.AutomaticSize.Y
 
     self.OptionsFrame.CanvasSize =
-        UDim2.new(0, 0, 0, 0)
+        UDim2.new(
+            0,
+            0,
+            0,
+            0
+        )
 
     self.OptionsFrame.Visible = false
 
-    self.OptionsFrame.Parent = self.Container
+    self.OptionsFrame.Parent =
+        self.Container
 
     --------------------------------------------------------
-    -- OPTION LAYOUT
+    -- OPTIONS LAYOUT
     --------------------------------------------------------
 
-    self.OptionLayout = Instance.new("UIListLayout")
+    self.OptionLayout =
+        Instance.new("UIListLayout")
+
+    self.OptionLayout.Name =
+        "OptionLayout"
+
     self.OptionLayout.SortOrder =
         Enum.SortOrder.LayoutOrder
 
@@ -227,20 +375,10 @@ function Dropdown.new(tab, options)
         self.OptionsFrame
 
     --------------------------------------------------------
-    -- INITIAL SELECTED VALUES
+    -- INITIAL VALUE TEXT
     --------------------------------------------------------
 
-    if type(options.Selected) == "table" then
-
-        for _, value in ipairs(options.Selected) do
-            self.Selected[value] = true
-        end
-
-    elseif options.Selected ~= nil then
-
-        self.Selected[options.Selected] = true
-
-    end
+    self:_UpdateValueText()
 
     --------------------------------------------------------
     -- BUILD OPTIONS
@@ -248,18 +386,24 @@ function Dropdown.new(tab, options)
 
     self:_BuildOptions()
 
-    self:_UpdateValueText()
-
     --------------------------------------------------------
     -- OPEN / CLOSE
     --------------------------------------------------------
 
-    self.ToggleButton.MouseButton1Click:Connect(function()
-        self:SetOpen(not self.Opened)
-    end)
+    self.ToggleButton.MouseButton1Click:Connect(
+        function()
+            if self.Destroyed then
+                return
+            end
+
+            self:SetOpen(
+                not self.Opened
+            )
+        end
+    )
 
     --------------------------------------------------------
-    -- REGISTER ELEMENT
+    -- REGISTER
     --------------------------------------------------------
 
     table.insert(
@@ -271,51 +415,109 @@ function Dropdown.new(tab, options)
 end
 
 ------------------------------------------------------------
+-- CHECK VALUE
+------------------------------------------------------------
+
+function Dropdown:_ContainsValue(value)
+    for _, item in ipairs(self.Values) do
+        if item == value then
+            return true
+        end
+    end
+
+    return false
+end
+
+------------------------------------------------------------
+-- SELECTED TEXT
+------------------------------------------------------------
+
+function Dropdown:_UpdateValueText()
+    if self.Destroyed then
+        return
+    end
+
+    local selected = {}
+
+    for _, value in ipairs(self.Values) do
+        if self.Selected[value] then
+            table.insert(
+                selected,
+                tostring(value)
+            )
+        end
+    end
+
+    if #selected == 0 then
+        self.ValueLabel.Text = "None"
+    else
+        self.ValueLabel.Text =
+            table.concat(
+                selected,
+                ", "
+            )
+    end
+end
+
+------------------------------------------------------------
 -- CREATE OPTION
 ------------------------------------------------------------
 
 function Dropdown:_CreateOption(value, index)
+    local theme =
+        self.Window.ThemeData
 
-    local option = Instance.new("TextButton")
+    local option =
+        Instance.new("TextButton")
 
     option.Name =
         "Option_" .. tostring(value)
 
     option.Size =
-        UDim2.new(1, -6, 0, OPTION_HEIGHT)
-
-    option.AutomaticSize =
-        Enum.AutomaticSize.None
+        UDim2.new(
+            1,
+            -6,
+            0,
+            OPTION_HEIGHT
+        )
 
     option.BackgroundColor3 =
-        self.Window.ThemeData.DropdownOption
-        or self.Window.ThemeData.Background
+        theme.DropdownOption
+        or theme.Background
+        or Color3.fromRGB(30, 30, 30)
 
     option.BorderSizePixel = 0
 
     option.Text =
         tostring(value)
 
+    -- Không dùng Roblox default
     option.TextSize = 13
-    option.Font = self.Window.CurrentFont
+    option.Font =
+        self.Window.CurrentFont
 
     option.TextColor3 =
-        self.Window.ThemeData.Text
+        theme.Text
+        or Color3.fromRGB(255, 255, 255)
 
     option.TextXAlignment =
         Enum.TextXAlignment.Left
 
+    option.TextYAlignment =
+        Enum.TextYAlignment.Center
+
     option.AutoButtonColor = false
 
     option.LayoutOrder = index
-
-    option.Parent = self.OptionsFrame
+    option.Parent =
+        self.OptionsFrame
 
     --------------------------------------------------------
-    -- OPTION PADDING
+    -- PADDING
     --------------------------------------------------------
 
-    local padding = Instance.new("UIPadding")
+    local padding =
+        Instance.new("UIPadding")
 
     padding.PaddingLeft =
         UDim.new(0, 8)
@@ -323,51 +525,75 @@ function Dropdown:_CreateOption(value, index)
     padding.PaddingRight =
         UDim.new(0, 8)
 
-    padding.Parent = option
+    padding.Parent =
+        option
 
     --------------------------------------------------------
     -- HOVER
     --------------------------------------------------------
 
-    option.MouseEnter:Connect(function()
+    option.MouseEnter:Connect(
+        function()
 
-        if not self.Selected[value] then
+            if self.Destroyed then
+                return
+            end
 
-            option.BackgroundColor3 =
-                self.Window.ThemeData.DropdownOptionHover
-                or self.Window.ThemeData.Background
+            if not self.Selected[value] then
+
+                option.BackgroundColor3 =
+                    self.Window.ThemeData.DropdownOptionHover
+                    or self.Window.ThemeData.Background
+
+            end
 
         end
+    )
 
-    end)
+    option.MouseLeave:Connect(
+        function()
 
-    option.MouseLeave:Connect(function()
+            if self.Destroyed then
+                return
+            end
 
-        self:_UpdateOptionColor(
-            option,
-            value
-        )
+            self:_UpdateOptionColor(
+                option,
+                value
+            )
 
-    end)
+        end
+    )
 
     --------------------------------------------------------
     -- CLICK
     --------------------------------------------------------
 
-    option.MouseButton1Click:Connect(function()
+    option.MouseButton1Click:Connect(
+        function()
 
-        self:_SelectValue(value)
+            if self.Destroyed then
+                return
+            end
 
-    end)
+            self:_SelectValue(
+                value
+            )
+
+        end
+    )
 
     return option
 end
 
 ------------------------------------------------------------
--- BUILD ALL OPTIONS
+-- BUILD OPTIONS
 ------------------------------------------------------------
 
 function Dropdown:_BuildOptions()
+    if self.Destroyed then
+        return
+    end
 
     for _, child in ipairs(
         self.OptionsFrame:GetChildren()
@@ -379,7 +605,9 @@ function Dropdown:_BuildOptions()
 
     end
 
-    for index, value in ipairs(self.Values) do
+    for index, value in ipairs(
+        self.Values
+    ) do
 
         self:_CreateOption(
             value,
@@ -392,124 +620,72 @@ function Dropdown:_BuildOptions()
 end
 
 ------------------------------------------------------------
--- UPDATE OPTION COLOR
+-- OPTION COLOR
 ------------------------------------------------------------
 
 function Dropdown:_UpdateOptionColor(
     option,
     value
 )
+    local theme =
+        self.Window.ThemeData
 
     if self.Selected[value] then
 
         option.BackgroundColor3 =
-            self.Window.ThemeData.DropdownOptionSelected
-            or self.Window.ThemeData.Accent
+            theme.DropdownOptionSelected
+            or theme.Accent
 
     else
 
         option.BackgroundColor3 =
-            self.Window.ThemeData.DropdownOption
-            or self.Window.ThemeData.Background
+            theme.DropdownOption
+            or theme.Background
 
     end
 
     option.TextColor3 =
-        self.Window.ThemeData.Text
+        theme.Text
+        or Color3.fromRGB(255, 255, 255)
 
     option.TextSize = 13
-    option.Font = self.Window.CurrentFont
+
+    self:_SetInstanceFont(
+        option,
+        self.Window.CurrentFont
+    )
 end
 
 ------------------------------------------------------------
--- UPDATE OPTIONS SIZE
-------------------------------------------------------------
-
-function Dropdown:_UpdateOptionsSize()
-
-    local count = #self.Values
-
-    local visibleCount =
-        math.min(
-            count,
-            MAX_VISIBLE_OPTIONS
-        )
-
-    local targetHeight =
-        visibleCount * OPTION_HEIGHT
-
-    self.ClosedHeight = 0
-    self.OpenHeight = targetHeight
-
-end
-
-------------------------------------------------------------
--- SELECT VALUE
-------------------------------------------------------------
-
-function Dropdown:_SelectValue(value)
-
-    local changed = value
-
-    if self.Multi then
-
-        self.Selected[value] =
-            not self.Selected[value]
-
-    else
-
-        self.Selected = {}
-
-        self.Selected[value] = true
-
-    end
-
-    self:_UpdateValueText()
-    self:_UpdateOptions()
-
-    task.spawn(function()
-
-        local selected =
-            self:GetSelected()
-
-        pcall(
-            self.Callback,
-            selected,
-            changed
-        )
-
-    end)
-
-end
-
-------------------------------------------------------------
--- UPDATE OPTIONS
+-- REFRESH OPTION COLORS
 ------------------------------------------------------------
 
 function Dropdown:_UpdateOptions()
-
     for _, child in ipairs(
         self.OptionsFrame:GetChildren()
     ) do
 
         if child:IsA("TextButton") then
 
-            local value =
+            local prefix =
+                "Option_"
+
+            local rawName =
                 string.gsub(
                     child.Name,
-                    "^Option_",
+                    "^" .. prefix,
                     ""
                 )
 
-            for _, originalValue in ipairs(
+            for _, value in ipairs(
                 self.Values
             ) do
 
-                if tostring(originalValue) == value then
+                if tostring(value) == rawName then
 
                     self:_UpdateOptionColor(
                         child,
-                        originalValue
+                        value
                     )
 
                     break
@@ -520,44 +696,80 @@ function Dropdown:_UpdateOptions()
         end
 
     end
-
 end
 
 ------------------------------------------------------------
--- UPDATE VALUE TEXT
+-- UPDATE OPTIONS HEIGHT
 ------------------------------------------------------------
 
-function Dropdown:_UpdateValueText()
+function Dropdown:_UpdateOptionsSize()
+    local count =
+        #self.Values
 
-    local selected = {}
+    local visible =
+        math.min(
+            count,
+            MAX_VISIBLE_OPTIONS
+        )
 
-    for _, value in ipairs(self.Values) do
+    self.OpenHeight =
+        visible * OPTION_HEIGHT
+end
 
-        if self.Selected[value] then
+------------------------------------------------------------
+-- SELECT
+------------------------------------------------------------
 
-            table.insert(
-                selected,
-                tostring(value)
-            )
-
-        end
-
+function Dropdown:_SelectValue(value)
+    if self.Destroyed then
+        return
     end
 
-    if #selected == 0 then
+    if not self.Multi then
 
-        self.ValueLabel.Text = "None"
+        table.clear(
+            self.Selected
+        )
+
+        self.Selected[value] = true
 
     else
 
-        self.ValueLabel.Text =
-            table.concat(
-                selected,
-                ", "
-            )
+        self.Selected[value] =
+            not self.Selected[value]
 
     end
 
+    self:_UpdateValueText()
+    self:_UpdateOptions()
+
+    task.spawn(
+        function()
+
+            local selected =
+                self:GetSelected()
+
+            local ok, err =
+                pcall(
+                    self.Callback,
+                    selected,
+                    value
+                )
+
+            if not ok then
+                warn(
+                    "Dropdown callback error:",
+                    err
+                )
+            end
+
+        end
+    )
+
+    -- Single select tự đóng
+    if not self.Multi then
+        self:SetOpen(false)
+    end
 end
 
 ------------------------------------------------------------
@@ -565,10 +777,11 @@ end
 ------------------------------------------------------------
 
 function Dropdown:GetSelected()
-
     local result = {}
 
-    for _, value in ipairs(self.Values) do
+    for _, value in ipairs(
+        self.Values
+    ) do
 
         if self.Selected[value] then
 
@@ -589,6 +802,9 @@ end
 ------------------------------------------------------------
 
 function Dropdown:SetOpen(state)
+    if self.Destroyed then
+        return
+    end
 
     state = state == true
 
@@ -600,10 +816,18 @@ function Dropdown:SetOpen(state)
 
     --------------------------------------------------------
     -- ROTATE ARROW
+    --
+    -- Closed:
+    -- ▼ rotated -90° = ▶
+    --
+    -- Open:
+    -- ▼ rotated 0° = ▼
     --------------------------------------------------------
 
     local arrowRotation =
-        state and 180 or 0
+        state
+        and ARROW_ROTATION_OPEN
+        or ARROW_ROTATION_CLOSED
 
     TweenService:Create(
         self.ToggleButton,
@@ -625,9 +849,6 @@ function Dropdown:SetOpen(state)
 
         self.OptionsFrame.Visible = true
 
-        local targetHeight =
-            self.OpenHeight
-
         TweenService:Create(
             self.OptionsFrame,
             TweenInfo.new(
@@ -636,12 +857,13 @@ function Dropdown:SetOpen(state)
                 Enum.EasingDirection.Out
             ),
             {
-                Size = UDim2.new(
-                    DROPDOWN_WIDTH_SCALE,
-                    0,
-                    0,
-                    targetHeight
-                )
+                Size =
+                    UDim2.new(
+                        DROPDOWN_WIDTH_SCALE,
+                        0,
+                        0,
+                        self.OpenHeight
+                    )
             }
         ):Play()
 
@@ -660,77 +882,102 @@ function Dropdown:SetOpen(state)
                     Enum.EasingDirection.Out
                 ),
                 {
-                    Size = UDim2.new(
-                        DROPDOWN_WIDTH_SCALE,
-                        0,
-                        0,
-                        0
-                    )
+                    Size =
+                        UDim2.new(
+                            DROPDOWN_WIDTH_SCALE,
+                            0,
+                            0,
+                            0
+                        )
                 }
             )
 
         tween:Play()
 
-        tween.Completed:Connect(function()
+        tween.Completed:Connect(
+            function()
 
-            if not self.Opened then
-                self.OptionsFrame.Visible = false
+                if not self.Opened
+                    and not self.Destroyed then
+
+                    self.OptionsFrame.Visible =
+                        false
+
+                end
+
             end
-
-        end)
-
+        )
     end
-
 end
 
 ------------------------------------------------------------
--- METHOD: SetTitle
+-- SET TITLE
 ------------------------------------------------------------
 
 function Dropdown:SetTitle(newTitle)
+    if self.Destroyed then
+        return
+    end
 
     self.Title =
         tostring(newTitle)
 
+    self.Container.Name =
+        self.Title .. "_Dropdown"
+
     self.TitleLabel.Text =
         self.Title
-
 end
 
 ------------------------------------------------------------
--- METHOD: Add
+-- ADD
 ------------------------------------------------------------
 
 function Dropdown:Add(value)
+    if self.Destroyed then
+        return
+    end
 
     if type(value) == "table" then
 
         for _, item in ipairs(value) do
-            table.insert(
-                self.Values,
-                item
-            )
+
+            if not self:_ContainsValue(item) then
+
+                table.insert(
+                    self.Values,
+                    item
+                )
+
+            end
+
         end
 
     else
 
-        table.insert(
-            self.Values,
-            value
-        )
+        if not self:_ContainsValue(value) then
+
+            table.insert(
+                self.Values,
+                value
+            )
+
+        end
 
     end
 
     self:_BuildOptions()
     self:_UpdateValueText()
-
 end
 
 ------------------------------------------------------------
--- METHOD: Delete
+-- DELETE
 ------------------------------------------------------------
 
 function Dropdown:Delete(value)
+    if self.Destroyed then
+        return
+    end
 
     for i = #self.Values, 1, -1 do
 
@@ -749,52 +996,159 @@ function Dropdown:Delete(value)
 
     self:_BuildOptions()
     self:_UpdateValueText()
-
 end
 
 ------------------------------------------------------------
--- METHOD: Refresh
+-- REFRESH
 ------------------------------------------------------------
 
 function Dropdown:Refresh(values)
+    if self.Destroyed then
+        return
+    end
 
     self.Values =
-        values or {}
+        type(values) == "table"
+        and values
+        or {}
 
-    self.Selected = {}
+    -- Selected cũ không còn hợp lệ
+    local newSelected = {}
+
+    for _, value in ipairs(
+        self.Values
+    ) do
+
+        if self.Selected[value] then
+            newSelected[value] = true
+        end
+
+    end
+
+    self.Selected =
+        newSelected
 
     self:_BuildOptions()
     self:_UpdateValueText()
-
 end
 
 ------------------------------------------------------------
--- METHOD: Refesh
--- Giữ alias để tránh breaking code cũ
+-- REFESH
+--
+-- Alias để tương thích với tên method bạn đã yêu cầu.
 ------------------------------------------------------------
 
 function Dropdown:Refesh(values)
-
     self:Refresh(values)
-
 end
 
 ------------------------------------------------------------
--- METHOD: UpdateTheme
+-- FONT HELPER
+------------------------------------------------------------
+
+function Dropdown:_SetInstanceFont(
+    instance,
+    fontType
+)
+    if typeof(fontType) == "string"
+        and string.find(
+            string.lower(fontType),
+            "rbxassetid",
+            1,
+            true
+        ) then
+
+        local ok, customFont =
+            pcall(
+                function()
+                    return Font.new(fontType)
+                end
+            )
+
+        if ok and customFont then
+            instance.FontFace =
+                customFont
+        end
+
+        return
+    end
+
+    if typeof(fontType) == "EnumItem"
+        and fontType.EnumType
+            == Enum.Font then
+
+        instance.Font =
+            fontType
+    end
+end
+
+------------------------------------------------------------
+-- SET FONT
+------------------------------------------------------------
+
+function Dropdown:SetFont(fontType)
+    if self.Destroyed then
+        return
+    end
+
+    self:_SetInstanceFont(
+        self.ToggleButton,
+        fontType
+    )
+
+    self:_SetInstanceFont(
+        self.ValueLabel,
+        fontType
+    )
+
+    self:_SetInstanceFont(
+        self.TitleLabel,
+        fontType
+    )
+
+    for _, child in ipairs(
+        self.OptionsFrame:GetChildren()
+    ) do
+
+        if child:IsA("TextButton") then
+
+            self:_SetInstanceFont(
+                child,
+                fontType
+            )
+
+            child.TextSize = 13
+
+        end
+
+    end
+end
+
+------------------------------------------------------------
+-- UPDATE THEME
 ------------------------------------------------------------
 
 function Dropdown:UpdateTheme(theme)
+    if self.Destroyed then
+        return
+    end
 
     --------------------------------------------------------
-    -- FRAME
+    -- MAIN FRAME
     --------------------------------------------------------
 
     self.DropdownFrame.BackgroundColor3 =
         theme.DropdownFrame
         or theme.Border
+        or Color3.fromRGB(38, 38, 38)
 
     self.DropdownFrame.BorderColor3 =
         theme.Border
+        or Color3.fromRGB(60, 60, 60)
+
+    --------------------------------------------------------
+    -- OPTIONS FRAME
+    --------------------------------------------------------
 
     self.OptionsFrame.BackgroundColor3 =
         theme.DropdownFrame
@@ -804,72 +1158,56 @@ function Dropdown:UpdateTheme(theme)
         theme.Border
 
     --------------------------------------------------------
-    -- FONT
-    --------------------------------------------------------
-
-    self.ToggleButton.Font =
-        self.Window.CurrentFont
-
-    self.ToggleButton.TextSize = 14
-
-    self.ValueLabel.Font =
-        self.Window.CurrentFont
-
-    self.ValueLabel.TextSize = 13
-
-    self.TitleLabel.Font =
-        self.Window.CurrentFont
-
-    self.TitleLabel.TextSize = 13
-
-    --------------------------------------------------------
     -- TEXT
     --------------------------------------------------------
 
     self.ToggleButton.TextColor3 =
         theme.Text
+        or Color3.fromRGB(255, 255, 255)
 
     self.ValueLabel.TextColor3 =
         theme.Text
+        or Color3.fromRGB(255, 255, 255)
 
     self.TitleLabel.TextColor3 =
         theme.Text
+        or Color3.fromRGB(255, 255, 255)
+
+    --------------------------------------------------------
+    -- FONT
+    --------------------------------------------------------
+
+    self.ToggleButton.TextSize = 14
+    self.ValueLabel.TextSize = 13
+    self.TitleLabel.TextSize = 13
+
+    self:SetFont(
+        self.Window.CurrentFont
+    )
 
     --------------------------------------------------------
     -- OPTIONS
     --------------------------------------------------------
 
-    for _, child in ipairs(
-        self.OptionsFrame:GetChildren()
-    ) do
-
-        if child:IsA("TextButton") then
-
-            child.Font =
-                self.Window.CurrentFont
-
-            child.TextSize = 13
-
-            self:_UpdateOptionColor(
-                child,
-                string.gsub(
-                    child.Name,
-                    "^Option_",
-                    ""
-                )
-            )
-
-        end
-
-    end
-
+    self:_UpdateOptions()
 end
 
 ------------------------------------------------------------
--- METHOD: Destroy
+-- DESTROY
 ------------------------------------------------------------
 
 function Dropdown:Destroy()
+    if self.Destroyed then
+        return
+    end
+
+    self.Destroyed = true
+    self.Opened = false
+
+    if self.Container then
+        self.Container:Destroy()
+        self.Container = nil
+    end
 
     for i, element in ipairs(
         self.Tab.Elements
@@ -883,15 +1221,9 @@ function Dropdown:Destroy()
             )
 
             break
-
         end
 
     end
-
-    if self.Container then
-        self.Container:Destroy()
-    end
-
 end
 
 return Dropdown
