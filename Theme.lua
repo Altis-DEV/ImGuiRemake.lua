@@ -38,6 +38,11 @@ Theme.Themes = {
         TextBoxText = Color3.fromRGB(150, 150, 150),
         ParagraphTitleFrame = Color3.fromRGB(32, 32, 32),
         ParagraphTextFrame = Color3.fromRGB(26, 26, 26),
+
+        ColorPickerSlider = Color3.fromRGB(55, 55, 55),
+        ColorPickerBar = Color3.fromRGB(90, 90, 90),
+        ColorPickerInput = Color3.fromRGB(30, 30, 30),
+        ColorPickerPlaceholder = Color3.fromRGB(150, 150, 150),
     }
 }
 
