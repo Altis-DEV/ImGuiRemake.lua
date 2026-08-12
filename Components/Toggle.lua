@@ -83,26 +83,23 @@ function Toggle.new(tab, options)
     -- INNER CHECKBOX
     ----------------------------------------------------------------
 
-    self.InnerBox = Instance.new("Frame")
-    self.InnerBox.Name = "Inner"
+    -- INNER CHECKBOX
+self.InnerBox = Instance.new("Frame")
+self.InnerBox.Name = "Inner"
 
-    self.InnerBox.Size =
-        self.StateValue
-        and UDim2.new(0, 20, 0, 20)
-        or UDim2.new(0, 0, 0, 0)
+self.InnerBox.Size =
+    self.StateValue
+    and UDim2.new(1, 0, 1, 0)
+    or UDim2.new(0, 0, 0, 0)
 
-    self.InnerBox.AnchorPoint =
-        Vector2.new(0.5, 0.5)
+self.InnerBox.AnchorPoint = Vector2.new(0.5, 0.5)
+self.InnerBox.Position = UDim2.new(0.5, 0, 0.5, 0)
 
-    self.InnerBox.Position =
-        UDim2.new(0.5, 0, 0.5, 0)
+self.InnerBox.BackgroundColor3 =
+    theme.Checkbox or theme.Accent
 
-    self.InnerBox.BackgroundColor3 =
-        theme.Checkbox or theme.Accent
-
-    self.InnerBox.BorderSizePixel = 0
-    self.InnerBox.Parent = self.CheckboxOuter
-
+self.InnerBox.BorderSizePixel = 0
+self.InnerBox.Parent = self.CheckboxOuter
     ----------------------------------------------------------------
     -- TITLE
     ----------------------------------------------------------------
