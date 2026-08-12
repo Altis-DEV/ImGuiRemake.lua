@@ -36,6 +36,8 @@ Theme.Themes = {
 
         -- Màu subtitle / placeholder
         TextBoxText = Color3.fromRGB(150, 150, 150),
+        ParagraphTitleFrame = Color3.fromRGB(32, 32, 32),
+        ParagraphTextFrame = Color3.fromRGB(26, 26, 26),
     }
 }
 
