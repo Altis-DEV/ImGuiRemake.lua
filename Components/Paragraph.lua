@@ -5,7 +5,7 @@ Paragraph.__index = Paragraph
 
 local PADDING_X = 8
 local PADDING_Y = 6
-local ELEMENT_GAP = 5
+local ELEMENT_GAP = 0
 
 local DEFAULT_TEXT_SIZE = 13
 
@@ -72,7 +72,6 @@ function Paragraph.new(tab, options)
     self.Container = Instance.new("Frame")
     self.Container.Name = "Paragraph"
 
-    -- FULL WIDTH
     self.Container.Size =
         UDim2.new(
             1,
@@ -97,7 +96,6 @@ function Paragraph.new(tab, options)
     self.TitleFrame = Instance.new("Frame")
     self.TitleFrame.Name = "TitleFrame"
 
-    -- FULL WIDTH
     self.TitleFrame.Size =
         UDim2.new(
             1,
@@ -133,17 +131,9 @@ function Paragraph.new(tab, options)
     self.TitleLabel.Size =
         UDim2.new(
             1,
-            -(PADDING_X * 2),
+            0,
             0,
             0
-        )
-
-    self.TitleLabel.Position =
-        UDim2.new(
-            0,
-            PADDING_X,
-            0,
-            PADDING_Y
         )
 
     self.TitleLabel.AutomaticSize =
@@ -157,6 +147,7 @@ function Paragraph.new(tab, options)
     self.TitleLabel.RichText = true
     self.TitleLabel.TextWrapped = true
 
+    -- Căn trái + giữa theo chiều dọc
     self.TitleLabel.TextXAlignment =
         Enum.TextXAlignment.Left
 
@@ -199,24 +190,26 @@ function Paragraph.new(tab, options)
         self.TitleFrame
 
     ------------------------------------------------------------
-    -- GAP
+    -- SEPARATOR / BORDER
     ------------------------------------------------------------
 
-    self.Spacing = Instance.new("Frame")
-    self.Spacing.Name = "Spacing"
+    self.Separator = Instance.new("Frame")
+    self.Separator.Name = "Separator"
 
-    self.Spacing.Size =
+    self.Separator.Size =
         UDim2.new(
             1,
             0,
             0,
-            ELEMENT_GAP
+            1
         )
 
-    self.Spacing.BackgroundTransparency = 1
-    self.Spacing.BorderSizePixel = 0
+    self.Separator.BackgroundColor3 =
+        theme.Border
+        or Color3.fromRGB(60, 60, 60)
 
-    self.Spacing.Parent =
+    self.Separator.BorderSizePixel = 0
+    self.Separator.Parent =
         self.Container
 
     ------------------------------------------------------------
@@ -226,7 +219,6 @@ function Paragraph.new(tab, options)
     self.TextFrame = Instance.new("Frame")
     self.TextFrame.Name = "TextFrame"
 
-    -- FULL WIDTH
     self.TextFrame.Size =
         UDim2.new(
             1,
@@ -262,17 +254,9 @@ function Paragraph.new(tab, options)
     self.TextLabel.Size =
         UDim2.new(
             1,
-            -(PADDING_X * 2),
+            0,
             0,
             0
-        )
-
-    self.TextLabel.Position =
-        UDim2.new(
-            0,
-            PADDING_X,
-            0,
-            PADDING_Y
         )
 
     self.TextLabel.AutomaticSize =
@@ -286,11 +270,12 @@ function Paragraph.new(tab, options)
     self.TextLabel.RichText = true
     self.TextLabel.TextWrapped = true
 
+    -- Căn trái + giữa theo chiều dọc
     self.TextLabel.TextXAlignment =
         Enum.TextXAlignment.Left
 
     self.TextLabel.TextYAlignment =
-        Enum.TextYAlignment.Top
+        Enum.TextYAlignment.Center
 
     self.TextLabel.TextSize =
         DEFAULT_TEXT_SIZE
@@ -422,6 +407,14 @@ function Paragraph:UpdateTheme(theme)
         or Color3.fromRGB(60, 60, 60)
 
     --------------------------------------------------------
+    -- SEPARATOR
+    --------------------------------------------------------
+
+    self.Separator.BackgroundColor3 =
+        theme.Border
+        or Color3.fromRGB(60, 60, 60)
+
+    --------------------------------------------------------
     -- TEXT FRAME
     --------------------------------------------------------
 
@@ -435,7 +428,7 @@ function Paragraph:UpdateTheme(theme)
         or Color3.fromRGB(60, 60, 60)
 
     --------------------------------------------------------
-    -- TEXT
+    -- TEXT COLOR
     --------------------------------------------------------
 
     self.TitleLabel.TextColor3 =
@@ -474,7 +467,6 @@ function Paragraph:Destroy()
     for i, element in ipairs(
         self.Tab.Elements
     ) do
-
         if element == self then
             table.remove(
                 self.Tab.Elements,
@@ -482,7 +474,6 @@ function Paragraph:Destroy()
             )
             break
         end
-
     end
 end
 
