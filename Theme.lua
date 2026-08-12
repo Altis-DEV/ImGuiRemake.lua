@@ -33,9 +33,9 @@ Theme.Themes = {
         DropdownOptionHover = Color3.fromRGB(50, 50, 50),
 
         TextBoxFrame = Color3.fromRGB(38, 38, 38),
-
         -- Màu subtitle / placeholder
         TextBoxText = Color3.fromRGB(150, 150, 150),
+        
         ParagraphTitleFrame = Color3.fromRGB(32, 32, 32),
         ParagraphTextFrame = Color3.fromRGB(26, 26, 26),
 
