@@ -1,24 +1,48 @@
 -- File: ImGuiRemake.lua/init.lua
+
 local ImGui = {}
-local repo = "https://raw.githubusercontent.com/Altis-DEV/ImGuiRemake.lua/refs/heads/main/"
 
-local Theme = loadstring(game:HttpGet(repo .. "Theme.lua"))()
-local WindowModule = loadstring(game:HttpGet(repo .. "Components/Window.lua"))()
-local TabModule = loadstring(game:HttpGet(repo .. "Components/Tab.lua"))()
-local ButtonModule = loadstring(game:HttpGet(repo .. "Components/Button.lua"))()
-local ToggleModule = loadstring(game:HttpGet(repo .. "Components/Toggle.lua"))() -- [THÊM MỚI] Load Toggle.lua
+local repo =
+    "https://raw.githubusercontent.com/Altis-DEV/ImGuiRemake.lua/refs/heads/main/"
 
--- Inject các Module phụ thuộc vào Window
+local function LoadModule(path)
+    local source = game:HttpGet(repo .. path)
+    local chunk, err = loadstring(source)
+
+    if not chunk then
+        error(("Failed to load %s:\n%s"):format(path, tostring(err)), 2)
+    end
+
+    local result = chunk()
+
+    if result == nil then
+        error(("Module %s returned nil"):format(path), 2)
+    end
+
+    return result
+end
+
+local Theme = LoadModule("Theme.lua")
+local WindowModule = LoadModule("Components/Window.lua")
+local TabModule = LoadModule("Components/Tab.lua")
+local ButtonModule = LoadModule("Components/Button.lua")
+local ToggleModule = LoadModule("Components/Toggle.lua")
+
+-- Dependency injection
 WindowModule._TabModule = TabModule
 WindowModule.ButtonModule = ButtonModule
-WindowModule.ToggleModule = ToggleModule -- [THÊM MỚI] Inject ToggleModule vào Window
+WindowModule.ToggleModule = ToggleModule
 
 function ImGui:CreateWindow(options)
-    return WindowModule.new(options, Theme:GetTheme("Default"), Theme)
+    return WindowModule.new(
+        options,
+        Theme:GetTheme("Default"),
+        Theme
+    )
 end
 
 function ImGui:CreateTheme(name, colors)
-    Theme:CreateTheme(name, colors)
+    return Theme:CreateTheme(name, colors)
 end
 
 return ImGui
