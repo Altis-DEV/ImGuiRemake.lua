@@ -59,15 +59,6 @@ end
 -- LOAD MODULES
 ------------------------------------------------------------
 
-local Theme =
-    LoadModule("Theme.lua")
-
-local WindowModule =
-    LoadModule("Components/Window.lua")
-
-local TabModule =
-    LoadModule("Components/Tab.lua")
-
 local ButtonModule =
     LoadModule("Components/Button.lua")
 
@@ -95,12 +86,8 @@ local DividerModule =
 local ColorPickerModule =
     LoadModule("Components/ColorPicker.lua")
 
-------------------------------------------------------------
--- INJECT COMPONENTS
-------------------------------------------------------------
-
-WindowModule._TabModule =
-    TabModule
+local ImageModule =
+    LoadModule("Components/Image.lua")
 
 WindowModule.ButtonModule =
     ButtonModule
@@ -126,8 +113,11 @@ WindowModule.LabelModule =
 WindowModule.DividerModule =
     DividerModule
 
-WindowModule.ColorPickerModule = 
+WindowModule.ColorPickerModule =
     ColorPickerModule
+
+WindowModule.ImageModule =
+    ImageModule
 
 ------------------------------------------------------------
 -- CREATE WINDOW
