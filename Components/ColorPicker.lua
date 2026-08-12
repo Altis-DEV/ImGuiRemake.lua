@@ -1,4 +1,4 @@
--- File: ImGuiRemake.lua/Components/ColorPicker.lua
+-- File:ImGuiRemake.lua/Components/ColorPicker.lua
 
 local ColorPicker = {}
 ColorPicker.__index = ColorPicker
