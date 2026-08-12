@@ -31,6 +31,9 @@ Theme.Themes = {
         DropdownOption = Color3.fromRGB(30, 30, 30),
         DropdownOptionSelected = Color3.fromRGB(40, 90, 175),
         DropdownOptionHover = Color3.fromRGB(50, 50, 50),
+
+        TextBoxFrame = Color3.fromRGB(38, 38, 38),
+        TextBoxText = Color3.fromRGB(255, 255, 255),
     }
 }
 
