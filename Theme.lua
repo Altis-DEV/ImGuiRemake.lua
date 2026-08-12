@@ -5,13 +5,14 @@ local Theme = {}
 Theme.Themes = {
     Default = {
         Accent = Color3.fromRGB(40, 90, 175),
-        Background = Color3.fromRGB(20, 20, 20),
 
+        Background = Color3.fromRGB(20, 20, 20),
         TabContainer = Color3.fromRGB(30, 30, 30),
         ElementContainer = Color3.fromRGB(25, 25, 25),
 
         Text = Color3.fromRGB(255, 255, 255),
         CloseBtn = Color3.fromRGB(235, 70, 70),
+
         Border = Color3.fromRGB(60, 60, 60),
 
         Tab = Color3.fromRGB(35, 35, 35),
@@ -22,12 +23,23 @@ Theme.Themes = {
         ButtonText = Color3.fromRGB(255, 255, 255),
 
         Checkbox = Color3.fromRGB(0, 170, 255),
+
+        -- Slider
+        SliderFrame = Color3.fromRGB(38, 38, 38),
+        SliderBar = Color3.fromRGB(40, 90, 175),
     }
 }
 
 function Theme:CreateTheme(themeName, colorTable)
-    assert(type(themeName) == "string", "Theme name must be a string")
-    assert(type(colorTable) == "table", "Theme colors must be a table")
+    assert(
+        type(themeName) == "string",
+        "Theme name must be a string"
+    )
+
+    assert(
+        type(colorTable) == "table",
+        "Theme colors must be a table"
+    )
 
     local newTheme = {}
 
