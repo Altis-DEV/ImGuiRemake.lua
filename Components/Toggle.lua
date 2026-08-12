@@ -155,7 +155,6 @@ end
 ----------------------------------------------------------------
 -- STATE
 ----------------------------------------------------------------
-
 function Toggle:State(newState)
     if self.Destroyed then
         return self.StateValue
@@ -169,7 +168,7 @@ function Toggle:State(newState)
 
     local targetSize =
         self.StateValue
-        and UDim2.new(0, 20, 0, 20)
+        and UDim2.new(1, 0, 1, 0)
         or UDim2.new(0, 0, 0, 0)
 
     local tween = TweenService:Create(
@@ -199,7 +198,6 @@ function Toggle:State(newState)
 
     return self.StateValue
 end
-
 ----------------------------------------------------------------
 -- TITLE
 ----------------------------------------------------------------
