@@ -72,7 +72,6 @@ function Window.new(options, themeData, themeManager)
     ----------------------------------------------------------------
 
     self.ScreenGui = Instance.new("ScreenGui")
-
     self.ScreenGui.Name =
         "ImGuiRemake_" .. tostring(math.random(100000, 999999))
 
@@ -216,10 +215,6 @@ function Window.new(options, themeData, themeManager)
     self.ResizeCorner.ZIndex = 100
     self.ResizeCorner.Parent = self.MainFrame
 
-    ----------------------------------------------------------------
-    -- THEME / LOGIC
-    ----------------------------------------------------------------
-
     self:ApplyTheme(self.ThemeData)
     self:InitLogic()
 
@@ -259,7 +254,6 @@ function Window:ApplyTheme(theme)
     end
 
     theme = theme or self.ThemeData or {}
-
     self.ThemeData = theme
 
     self.MainFrame.BackgroundColor3 =
@@ -289,8 +283,10 @@ function Window:ApplyTheme(theme)
     self.ResizeCorner.TextColor3 =
         theme.Accent or Color3.fromRGB(40, 90, 175)
 
-    self:Font(self.CurrentFont)
+    -- Font của Window + toàn bộ widget
+    self:Font(self.CurrentFont, true)
 
+    -- Theme xuống tất cả Tab và Element
     for _, tab in ipairs(self.Tabs) do
         if tab and tab.UpdateTheme then
             local ok, err = pcall(function()
@@ -305,14 +301,10 @@ function Window:ApplyTheme(theme)
 end
 
 ----------------------------------------------------------------
--- INPUT / WINDOW LOGIC
+-- INPUT / LOGIC
 ----------------------------------------------------------------
 
 function Window:InitLogic()
-    ----------------------------------------------------------------
-    -- MINIMIZE
-    ----------------------------------------------------------------
-
     self:_Connect(
         self.CollapseBtn.MouseButton1Click,
         function()
@@ -328,10 +320,6 @@ function Window:InitLogic()
         end
     )
 
-    ----------------------------------------------------------------
-    -- CLOSE
-    ----------------------------------------------------------------
-
     self:_Connect(
         self.CloseBtn.MouseButton1Click,
         function()
@@ -344,18 +332,14 @@ function Window:InitLogic()
     ----------------------------------------------------------------
 
     local isDragging = false
-    local dragInput = nil
-    local dragStart = nil
-    local startPosition = nil
+    local dragInput
+    local dragStart
+    local startPosition
 
     self:_Connect(
         self.Topbar.InputBegan,
         function(input)
             if not isInput(input) then
-                return
-            end
-
-            if self.IsDestroyed then
                 return
             end
 
@@ -369,10 +353,6 @@ function Window:InitLogic()
     self:_Connect(
         UserInputService.InputChanged,
         function(input)
-            if self.IsDestroyed then
-                return
-            end
-
             if not isDragging or input ~= dragInput then
                 return
             end
@@ -382,7 +362,6 @@ function Window:InitLogic()
             self.MainFrame.Position = UDim2.new(
                 startPosition.X.Scale,
                 startPosition.X.Offset + delta.X,
-
                 startPosition.Y.Scale,
                 startPosition.Y.Offset + delta.Y
             )
@@ -408,9 +387,9 @@ function Window:InitLogic()
     ----------------------------------------------------------------
 
     local isResizing = false
-    local resizeInput = nil
-    local resizeStart = nil
-    local startSize = nil
+    local resizeInput
+    local resizeStart
+    local startSize
 
     self:_Connect(
         self.ResizeCorner.InputBegan,
@@ -419,7 +398,7 @@ function Window:InitLogic()
                 return
             end
 
-            if self.IsDestroyed or self.IsMinimized then
+            if self.IsMinimized then
                 return
             end
 
@@ -433,10 +412,6 @@ function Window:InitLogic()
     self:_Connect(
         UserInputService.InputChanged,
         function(input)
-            if self.IsDestroyed then
-                return
-            end
-
             if not isResizing or input ~= resizeInput then
                 return
             end
@@ -535,7 +510,148 @@ function Window:SetVisible(state)
 end
 
 ----------------------------------------------------------------
--- CLOSE / MINIMIZE
+-- FONT
+----------------------------------------------------------------
+
+function Window:Font(fontType, internalCall)
+    if self.IsDestroyed then
+        return
+    end
+
+    if fontType == nil then
+        return
+    end
+
+    self.CurrentFont = fontType
+
+    local useFontFace = false
+
+    if typeof(fontType) == "string"
+        and string.find(
+            string.lower(fontType),
+            "rbxassetid",
+            1,
+            true
+        ) then
+
+        local ok, customFont = pcall(function()
+            return Font.new(fontType)
+        end)
+
+        if ok and customFont then
+            self.Title.FontFace = customFont
+            self.CloseBtn.FontFace = customFont
+            self.CollapseBtn.FontFace = customFont
+            useFontFace = true
+        else
+            warn("Không thể tạo custom font:", fontType)
+        end
+    end
+
+    if not useFontFace
+        and typeof(fontType) == "EnumItem"
+        and fontType.EnumType == Enum.Font then
+
+        self.Title.Font = fontType
+        self.CloseBtn.Font = fontType
+        self.CollapseBtn.Font = fontType
+    end
+
+    -- Cập nhật font xuống toàn bộ Tab/Element
+    for _, tab in ipairs(self.Tabs) do
+        if tab and tab.SetFont then
+            tab:SetFont(fontType)
+        end
+    end
+end
+
+-- Alias thân thiện
+function Window:SetFont(fontType)
+    self:Font(fontType)
+end
+
+----------------------------------------------------------------
+-- THEME
+----------------------------------------------------------------
+
+function Window:Theme(themeName)
+    if self.IsDestroyed then
+        return
+    end
+
+    if not self.ThemeManager then
+        return
+    end
+
+    local newTheme = self.ThemeManager:GetTheme(themeName)
+
+    if not newTheme then
+        warn("Không tìm thấy theme:", tostring(themeName))
+        return
+    end
+
+    self:ApplyTheme(newTheme)
+end
+
+----------------------------------------------------------------
+-- TAB
+----------------------------------------------------------------
+
+function Window:Tab(options)
+    if self.IsDestroyed then
+        return nil
+    end
+
+    if not self._TabModule then
+        warn(
+            "TabModule chưa được load " ..
+            "(Kiểm tra lại file init.lua)!"
+        )
+
+        return nil
+    end
+
+    return self._TabModule.new(
+        self,
+        options or {}
+    )
+end
+
+----------------------------------------------------------------
+-- GETTERS
+----------------------------------------------------------------
+
+function Window:GetSize()
+    if self.IsDestroyed then
+        return nil
+    end
+
+    return self.MainFrame.Size
+end
+
+function Window:GetPosition()
+    if self.IsDestroyed then
+        return nil
+    end
+
+    return self.MainFrame.Position
+end
+
+function Window:IsVisible()
+    if self.IsDestroyed then
+        return false
+    end
+
+    return self.ScreenGui.Enabled
+end
+
+function Window:IsOpen()
+    return not self.IsMinimized
+        and not self.IsDestroyed
+end
+
+----------------------------------------------------------------
+-- CLOSE
 ----------------------------------------------------------------
 
 function Window:Close()
@@ -547,7 +663,6 @@ function Window:Close()
 
     if self._CurrentTween then
         self._CurrentTween:Cancel()
-        self._CurrentTween = nil
     end
 
     local currentWidth = self.MainFrame.AbsoluteSize.X
@@ -593,7 +708,6 @@ function Window:Open()
 
     if self._CurrentTween then
         self._CurrentTween:Cancel()
-        self._CurrentTween = nil
     end
 
     self._CurrentTween = TweenService:Create(
@@ -659,136 +773,5 @@ function Window:Destroy()
     self.CloseBtn = nil
     self.CollapseBtn = nil
 end
-
-----------------------------------------------------------------
--- FONT
-----------------------------------------------------------------
-
-function Window:Font(fontType)
-    if self.IsDestroyed then
-        return
-    end
-
-    if fontType == nil then
-        return
-    end
-
-    self.CurrentFont = fontType
-
-    if typeof(fontType) == "string"
-        and string.find(
-            string.lower(fontType),
-            "rbxassetid",
-            1,
-            true
-        ) then
-
-        local ok, customFont = pcall(function()
-            return Font.new(fontType)
-        end)
-
-        if ok and customFont then
-            self.Title.FontFace = customFont
-            self.CloseBtn.FontFace = customFont
-            self.CollapseBtn.FontFace = customFont
-        else
-            warn("Không thể tạo custom font:", fontType)
-        end
-
-        return
-    end
-
-    if typeof(fontType) == "EnumItem"
-        and fontType.EnumType == Enum.Font then
-
-        self.Title.Font = fontType
-        self.CloseBtn.Font = fontType
-        self.CollapseBtn.Font = fontType
-    end
-end
-
-----------------------------------------------------------------
--- THEME
-----------------------------------------------------------------
-
-function Window:Theme(themeName)
-    if self.IsDestroyed then
-        return
-    end
-
-    if not self.ThemeManager then
-        return
-    end
-
-    local newTheme = self.ThemeManager:GetTheme(themeName)
-
-    if not newTheme then
-        warn("Không tìm thấy theme:", themeName)
-        return
-    end
-
-    self:ApplyTheme(newTheme)
-end
-
-----------------------------------------------------------------
--- TAB
-----------------------------------------------------------------
-
-function Window:Tab(options)
-    if self.IsDestroyed then
-        return nil
-    end
-
-    if not self._TabModule then
-        warn(
-            "TabModule chưa được load " ..
-            "(Kiểm tra lại file init.lua)!"
-        )
-
-        return nil
-    end
-
-    return self._TabModule.new(
-        self,
-        options or {}
-    )
-end
-
-----------------------------------------------------------------
--- GETTERS
-----------------------------------------------------------------
-
-function Window:GetSize()
-    if self.IsDestroyed then
-        return nil
-    end
-
-    return self.MainFrame.Size
-end
-
-function Window:GetPosition()
-    if self.IsDestroyed then
-        return nil
-    end
-
-    return self.MainFrame.Position
-end
-
-function Window:IsVisible()
-    if self.IsDestroyed then
-        return false
-    end
-
-    return self.ScreenGui.Enabled
-end
-
-function Window:IsOpen()
-    return not self.IsMinimized
-        and not self.IsDestroyed
-end
-
-----------------------------------------------------------------
--- RETURN
-----------------------------------------------------------------
 
 return Window
