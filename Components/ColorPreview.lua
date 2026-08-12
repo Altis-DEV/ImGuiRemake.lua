@@ -3,26 +3,25 @@
 local ColorPreview = {}
 ColorPreview.__index = ColorPreview
 
-local UserInputService = game:GetService("UserInputService")
-
 ------------------------------------------------------------
 -- CONSTANTS
 ------------------------------------------------------------
 
-local ELEMENT_HEIGHT = 30
-local WIDTH_SCALE = 0.5
+local ROW_HEIGHT = 30
+local PREVIEW_WIDTH = 0.5
 
-local PADDING_X = 8
-local INPUT_HEIGHT = 30
-local BODY_PADDING = 6
+local PADDING = 6
+local GAP = 6
 
-local DEFAULT_COLOR = Color3.fromRGB(255, 255, 255)
-
-local DEFAULT_TEXT_COLOR =
-    Color3.fromRGB(255, 255, 255)
-
-local DEFAULT_PLACEHOLDER_COLOR =
+local DEFAULT_TEXT_SIZE = 13
+local DEFAULT_PLACEHOLDER =
     Color3.fromRGB(150, 150, 150)
+
+local DEFAULT_BACKGROUND =
+    Color3.fromRGB(30, 30, 30)
+
+local DEFAULT_COLOR =
+    Color3.fromRGB(255, 255, 255)
 
 ------------------------------------------------------------
 -- HELPERS
@@ -55,118 +54,31 @@ local function setFont(instance, fontType)
     end
 end
 
-local function clamp01(value)
-    return math.clamp(value, 0, 1)
+local function clamp255(value)
+    return math.clamp(
+        math.floor(
+            tonumber(value) or 0
+            + 0.5
+        ),
+        0,
+        255
+    )
 end
 
-------------------------------------------------------------
--- HEX -> COLOR3
-------------------------------------------------------------
+local function color3ToHex(color)
+    local r = math.floor(color.R * 255 + 0.5)
+    local g = math.floor(color.G * 255 + 0.5)
+    local b = math.floor(color.B * 255 + 0.5)
 
-local function parseHex(value)
-    if type(value) ~= "string" then
-        return nil
-    end
-
-    value =
-        string.gsub(
-            value,
-            "%s+",
-            ""
-        )
-
-    value =
-        string.upper(value)
-
-    if string.sub(value, 1, 1) ~= "#" then
-        value = "#" .. value
-    end
-
-    --------------------------------------------------------
-    -- #RRGGBB
-    --------------------------------------------------------
-
-    if string.match(
-        value,
-        "^#%x%x%x%x%x%x$"
-    ) then
-
-        local hex =
-            string.sub(value, 2)
-
-        local r =
-            tonumber(
-                string.sub(hex, 1, 2),
-                16
-            )
-
-        local g =
-            tonumber(
-                string.sub(hex, 3, 4),
-                16
-            )
-
-        local b =
-            tonumber(
-                string.sub(hex, 5, 6),
-                16
-            )
-
-        return Color3.fromRGB(
-            r,
-            g,
-            b
-        )
-    end
-
-    --------------------------------------------------------
-    -- #RGB
-    --------------------------------------------------------
-
-    if string.match(
-        value,
-        "^#%x%x%x$"
-    ) then
-
-        local hex =
-            string.sub(value, 2)
-
-        local r =
-            tonumber(
-                string.sub(hex, 1, 1)
-                    .. string.sub(hex, 1, 1),
-                16
-            )
-
-        local g =
-            tonumber(
-                string.sub(hex, 2, 2)
-                    .. string.sub(hex, 2, 2),
-                16
-            )
-
-        local b =
-            tonumber(
-                string.sub(hex, 3, 3)
-                    .. string.sub(hex, 3, 3),
-                16
-            )
-
-        return Color3.fromRGB(
-            r,
-            g,
-            b
-        )
-    end
-
-    return nil
+    return string.format(
+        "#%02X%02X%02X",
+        r,
+        g,
+        b
+    )
 end
 
-------------------------------------------------------------
--- COLOR3 STRING
-------------------------------------------------------------
-
-local function colorToString(color)
+local function color3ToString(color)
     return string.format(
         "%.3f, %.3f, %.3f",
         color.R,
@@ -175,34 +87,76 @@ local function colorToString(color)
     )
 end
 
-------------------------------------------------------------
--- COLOR3 INPUT -> COLOR3
-------------------------------------------------------------
-
-local function parseColor3(value)
-    if typeof(value) == "Color3" then
-        return value
-    end
-
-    if type(value) ~= "string" then
+local function parseHex(text)
+    if type(text) ~= "string" then
         return nil
     end
 
-    value =
-        string.gsub(
-            value,
-            "%s+",
-            ""
+    text = text:gsub("%s+", "")
+    text = text:upper()
+
+    if text:sub(1, 1) ~= "#" then
+        text = "#" .. text
+    end
+
+    --------------------------------------------------------
+    -- #RRGGBB
+    --------------------------------------------------------
+
+    if text:match("^#%x%x%x%x%x%x$") then
+        local hex = text:sub(2)
+
+        local r = tonumber(hex:sub(1, 2), 16)
+        local g = tonumber(hex:sub(3, 4), 16)
+        local b = tonumber(hex:sub(5, 6), 16)
+
+        return Color3.fromRGB(r, g, b)
+    end
+
+    --------------------------------------------------------
+    -- #RGB
+    --------------------------------------------------------
+
+    if text:match("^#%x%x%x$") then
+        local hex = text:sub(2)
+
+        local r = tonumber(
+            hex:sub(1, 1) .. hex:sub(1, 1),
+            16
         )
 
-    -- Cho phép:
+        local g = tonumber(
+            hex:sub(2, 2) .. hex:sub(2, 2),
+            16
+        )
+
+        local b = tonumber(
+            hex:sub(3, 3) .. hex:sub(3, 3),
+            16
+        )
+
+        return Color3.fromRGB(r, g, b)
+    end
+
+    return nil
+end
+
+local function parseColor3(text)
+    if type(text) ~= "string" then
+        return nil
+    end
+
+    text = text:gsub("%s+", "")
+
+    --------------------------------------------------------
+    -- Supported:
     -- 1,0.5,0
-    -- 0.1, 0.25, 1
+    -- 1, 0.5, 0
+    --------------------------------------------------------
 
     local r, g, b =
-        string.match(
-            value,
-            "^([^,]+),([^,]+),([^,]+)$"
+        text:match(
+            "^([%+%-]?[%d%.]+),([%+%-]?[%d%.]+),([%+%-]?[%d%.]+)$"
         )
 
     if not r then
@@ -217,42 +171,10 @@ local function parseColor3(value)
         return nil
     end
 
-    r = clamp01(r)
-    g = clamp01(g)
-    b = clamp01(b)
-
     return Color3.new(
-        r,
-        g,
-        b
-    )
-end
-
-------------------------------------------------------------
--- HEX FORMAT
-------------------------------------------------------------
-
-local function colorToHex(color)
-    local r =
-        math.floor(
-            color.R * 255 + 0.5
-        )
-
-    local g =
-        math.floor(
-            color.G * 255 + 0.5
-        )
-
-    local b =
-        math.floor(
-            color.B * 255 + 0.5
-        )
-
-    return string.format(
-        "#%02X%02X%02X",
-        r,
-        g,
-        b
+        math.clamp(r, 0, 1),
+        math.clamp(g, 0, 1),
+        math.clamp(b, 0, 1)
     )
 end
 
@@ -263,10 +185,6 @@ end
 function ColorPreview.new(tab, options)
     options = options or {}
 
-    ------------------------------------------------------------
-    -- TITLE REQUIRED
-    ------------------------------------------------------------
-
     if options.Title == nil then
         error(
             "ColorPreview requires a Title",
@@ -274,17 +192,12 @@ function ColorPreview.new(tab, options)
         )
     end
 
-    local self =
-        setmetatable(
-            {},
-            ColorPreview
-        )
+    local self = setmetatable({}, ColorPreview)
 
     self.Tab = tab
     self.Window = tab.Window
 
-    self.Title =
-        tostring(options.Title)
+    self.Title = tostring(options.Title)
 
     self.Color =
         typeof(options.Color) == "Color3"
@@ -298,18 +211,13 @@ function ColorPreview.new(tab, options)
         and options.Callback
         or function() end
 
-    self._UpdatingInput = false
+    local theme = self.Window.ThemeData
 
-    local theme =
-        self.Window.ThemeData
+    --------------------------------------------------------
+    -- MAIN CONTAINER
+    --------------------------------------------------------
 
-    ------------------------------------------------------------
-    -- OUTER CONTAINER
-    ------------------------------------------------------------
-
-    self.Container =
-        Instance.new("Frame")
-
+    self.Container = Instance.new("Frame")
     self.Container.Name =
         self.Title .. "_ColorPreview"
 
@@ -318,28 +226,22 @@ function ColorPreview.new(tab, options)
             1,
             0,
             0,
-            0
+            ROW_HEIGHT + 2 * ROW_HEIGHT + GAP + 12
         )
 
     self.Container.AutomaticSize =
         Enum.AutomaticSize.Y
 
-    self.Container.BackgroundTransparency =
-        1
-
-    self.Container.BorderSizePixel =
-        0
-
+    self.Container.BackgroundTransparency = 1
+    self.Container.BorderSizePixel = 0
     self.Container.Parent =
         self.Tab.ContentFrame
 
-    ------------------------------------------------------------
+    --------------------------------------------------------
     -- TITLE FRAME
-    ------------------------------------------------------------
+    --------------------------------------------------------
 
-    self.TitleFrame =
-        Instance.new("Frame")
-
+    self.TitleFrame = Instance.new("Frame")
     self.TitleFrame.Name =
         "TitleFrame"
 
@@ -348,41 +250,32 @@ function ColorPreview.new(tab, options)
             1,
             0,
             0,
-            ELEMENT_HEIGHT
+            ROW_HEIGHT
         )
 
     self.TitleFrame.BackgroundColor3 =
         theme.ParagraphTitleFrame
         or theme.Background
-        or Color3.fromRGB(
-            32,
-            32,
-            32
-        )
+        or DEFAULT_BACKGROUND
 
     self.TitleFrame.BorderColor3 =
         theme.Border
 
-    self.TitleFrame.BorderSizePixel =
-        1
-
+    self.TitleFrame.BorderSizePixel = 1
     self.TitleFrame.Parent =
         self.Container
 
-    ------------------------------------------------------------
-    -- TITLE
-    ------------------------------------------------------------
+    --------------------------------------------------------
+    -- TITLE LABEL
+    --------------------------------------------------------
 
-    self.TitleLabel =
-        Instance.new("TextLabel")
-
-    self.TitleLabel.Name =
-        "Title"
+    self.TitleLabel = Instance.new("TextLabel")
+    self.TitleLabel.Name = "Title"
 
     self.TitleLabel.Size =
         UDim2.new(
             1,
-            -(PADDING_X * 2),
+            -(PADDING * 2),
             1,
             0
         )
@@ -390,29 +283,26 @@ function ColorPreview.new(tab, options)
     self.TitleLabel.Position =
         UDim2.new(
             0,
-            PADDING_X,
+            PADDING,
             0,
             0
         )
 
-    self.TitleLabel.BackgroundTransparency =
-        1
+    self.TitleLabel.BackgroundTransparency = 1
 
     self.TitleLabel.Text =
         self.Title
 
-    self.TitleLabel.RichText =
-        true
-
-    self.TitleLabel.TextSize =
-        13
-
-    self.TitleLabel.Font =
-        self.Window.CurrentFont
+    self.TitleLabel.RichText = true
 
     self.TitleLabel.TextColor3 =
         theme.Text
-        or DEFAULT_TEXT_COLOR
+
+    self.TitleLabel.TextSize =
+        DEFAULT_TEXT_SIZE
+
+    self.TitleLabel.Font =
+        self.Window.CurrentFont
 
     self.TitleLabel.TextXAlignment =
         Enum.TextXAlignment.Left
@@ -423,48 +313,46 @@ function ColorPreview.new(tab, options)
     self.TitleLabel.Parent =
         self.TitleFrame
 
-    ------------------------------------------------------------
+    --------------------------------------------------------
     -- BODY
-    ------------------------------------------------------------
+    --------------------------------------------------------
 
-    self.Body =
-        Instance.new("Frame")
-
-    self.Body.Name =
-        "Body"
+    self.Body = Instance.new("Frame")
+    self.Body.Name = "Body"
 
     self.Body.Size =
         UDim2.new(
             1,
             0,
             0,
-            BODY_PADDING * 2
-                + INPUT_HEIGHT * 2
+            ROW_HEIGHT * 2 + GAP
         )
 
-    self.Body.BackgroundTransparency =
-        1
+    self.Body.Position =
+        UDim2.new(
+            0,
+            0,
+            0,
+            ROW_HEIGHT
+        )
 
-    self.Body.BorderSizePixel =
-        0
-
+    self.Body.BackgroundTransparency = 1
+    self.Body.BorderSizePixel = 0
     self.Body.Parent =
         self.Container
 
-    ------------------------------------------------------------
+    --------------------------------------------------------
     -- PREVIEW FRAME
-    ------------------------------------------------------------
+    --------------------------------------------------------
 
-    self.PreviewFrame =
-        Instance.new("Frame")
-
+    self.PreviewFrame = Instance.new("Frame")
     self.PreviewFrame.Name =
-        "Preview"
+        "PreviewFrame"
 
     self.PreviewFrame.Size =
         UDim2.new(
-            WIDTH_SCALE,
-            -BODY_PADDING,
+            PREVIEW_WIDTH,
+            -GAP / 2,
             1,
             0
         )
@@ -483,54 +371,44 @@ function ColorPreview.new(tab, options)
     self.PreviewFrame.BorderColor3 =
         theme.Border
 
-    self.PreviewFrame.BorderSizePixel =
-        1
-
+    self.PreviewFrame.BorderSizePixel = 1
     self.PreviewFrame.Parent =
         self.Body
 
-    ------------------------------------------------------------
-    -- INPUT PANEL
-    ------------------------------------------------------------
+    --------------------------------------------------------
+    -- RIGHT SIDE PANEL
+    --------------------------------------------------------
 
-    self.InputPanel =
-        Instance.new("Frame")
-
+    self.InputPanel = Instance.new("Frame")
     self.InputPanel.Name =
         "InputPanel"
 
     self.InputPanel.Size =
         UDim2.new(
-            WIDTH_SCALE,
-            -BODY_PADDING,
+            PREVIEW_WIDTH,
+            -GAP / 2,
             1,
             0
         )
 
     self.InputPanel.Position =
         UDim2.new(
-            WIDTH_SCALE,
-            BODY_PADDING,
+            PREVIEW_WIDTH,
+            GAP / 2,
             0,
             0
         )
 
-    self.InputPanel.BackgroundTransparency =
-        1
-
-    self.InputPanel.BorderSizePixel =
-        0
-
+    self.InputPanel.BackgroundTransparency = 1
+    self.InputPanel.BorderSizePixel = 0
     self.InputPanel.Parent =
         self.Body
 
-    ------------------------------------------------------------
+    --------------------------------------------------------
     -- COLOR3 INPUT
-    ------------------------------------------------------------
+    --------------------------------------------------------
 
-    self.Color3Box =
-        Instance.new("TextBox")
-
+    self.Color3Box = Instance.new("TextBox")
     self.Color3Box.Name =
         "Color3"
 
@@ -539,7 +417,7 @@ function ColorPreview.new(tab, options)
             1,
             0,
             0,
-            INPUT_HEIGHT
+            ROW_HEIGHT
         )
 
     self.Color3Box.Position =
@@ -551,30 +429,29 @@ function ColorPreview.new(tab, options)
         )
 
     self.Color3Box.BackgroundColor3 =
-        theme.ColorPickerInput
-        or theme.Background
-        or Color3.fromRGB(
-            30,
-            30,
-            30
-        )
+        theme.TextBoxFrame
+        or DEFAULT_BACKGROUND
 
     self.Color3Box.BorderColor3 =
         theme.Border
 
-    self.Color3Box.BorderSizePixel =
-        1
+    self.Color3Box.BorderSizePixel = 1
+
+    self.Color3Box.Text =
+        color3ToString(self.Color)
+
+    self.Color3Box.PlaceholderText =
+        "1, 0.5, 0"
+
+    self.Color3Box.PlaceholderColor3 =
+        theme.TextBoxText
+        or DEFAULT_PLACEHOLDER
 
     self.Color3Box.TextColor3 =
         theme.Text
-        or DEFAULT_TEXT_COLOR
-
-    self.Color3Box.PlaceholderColor3 =
-        theme.ColorPickerPlaceholder
-        or DEFAULT_PLACEHOLDER_COLOR
 
     self.Color3Box.TextSize =
-        13
+        DEFAULT_TEXT_SIZE
 
     self.Color3Box.Font =
         self.Window.CurrentFont
@@ -588,23 +465,18 @@ function ColorPreview.new(tab, options)
     self.Color3Box.ClearTextOnFocus =
         false
 
-    self.Color3Box.PlaceholderText =
-        "1.000, 1.000, 1.000"
-
     self.Color3Box.Parent =
         self.InputPanel
 
-    ------------------------------------------------------------
-    -- DIVIDER
-    ------------------------------------------------------------
+    --------------------------------------------------------
+    -- SEPARATOR
+    --------------------------------------------------------
 
-    self.Divider =
-        Instance.new("Frame")
+    self.Separator = Instance.new("Frame")
+    self.Separator.Name =
+        "Separator"
 
-    self.Divider.Name =
-        "Divider"
-
-    self.Divider.Size =
+    self.Separator.Size =
         UDim2.new(
             1,
             0,
@@ -612,30 +484,26 @@ function ColorPreview.new(tab, options)
             1
         )
 
-    self.Divider.Position =
+    self.Separator.Position =
         UDim2.new(
             0,
             0,
             0,
-            INPUT_HEIGHT
+            ROW_HEIGHT
         )
 
-    self.Divider.BackgroundColor3 =
+    self.Separator.BackgroundColor3 =
         theme.Border
 
-    self.Divider.BorderSizePixel =
-        0
-
-    self.Divider.Parent =
+    self.Separator.BorderSizePixel = 0
+    self.Separator.Parent =
         self.InputPanel
 
-    ------------------------------------------------------------
+    --------------------------------------------------------
     -- HEX INPUT
-    ------------------------------------------------------------
+    --------------------------------------------------------
 
-    self.HexBox =
-        Instance.new("TextBox")
-
+    self.HexBox = Instance.new("TextBox")
     self.HexBox.Name =
         "Hex"
 
@@ -644,7 +512,7 @@ function ColorPreview.new(tab, options)
             1,
             0,
             0,
-            INPUT_HEIGHT
+            ROW_HEIGHT
         )
 
     self.HexBox.Position =
@@ -652,34 +520,33 @@ function ColorPreview.new(tab, options)
             0,
             0,
             0,
-            INPUT_HEIGHT + 1
+            ROW_HEIGHT + GAP
         )
 
     self.HexBox.BackgroundColor3 =
-        theme.ColorPickerInput
-        or theme.Background
-        or Color3.fromRGB(
-            30,
-            30,
-            30
-        )
+        theme.TextBoxFrame
+        or DEFAULT_BACKGROUND
 
     self.HexBox.BorderColor3 =
         theme.Border
 
-    self.HexBox.BorderSizePixel =
-        1
+    self.HexBox.BorderSizePixel = 1
+
+    self.HexBox.Text =
+        color3ToHex(self.Color)
+
+    self.HexBox.PlaceholderText =
+        "#FFFFFF"
+
+    self.HexBox.PlaceholderColor3 =
+        theme.TextBoxText
+        or DEFAULT_PLACEHOLDER
 
     self.HexBox.TextColor3 =
         theme.Text
-        or DEFAULT_TEXT_COLOR
-
-    self.HexBox.PlaceholderColor3 =
-        theme.ColorPickerPlaceholder
-        or DEFAULT_PLACEHOLDER_COLOR
 
     self.HexBox.TextSize =
-        13
+        DEFAULT_TEXT_SIZE
 
     self.HexBox.Font =
         self.Window.CurrentFont
@@ -693,26 +560,16 @@ function ColorPreview.new(tab, options)
     self.HexBox.ClearTextOnFocus =
         false
 
-    self.HexBox.PlaceholderText =
-        "#FFFFFF"
-
     self.HexBox.Parent =
         self.InputPanel
 
-    ------------------------------------------------------------
-    -- INITIAL VALUE
-    ------------------------------------------------------------
-
-    self:_UpdateDisplay()
-
-    ------------------------------------------------------------
-    -- COLOR3 INPUT
-    ------------------------------------------------------------
+    --------------------------------------------------------
+    -- COLOR3 INPUT LOGIC
+    --------------------------------------------------------
 
     self.Color3Box.FocusLost:Connect(
         function()
-            if self.Destroyed
-                or self._UpdatingInput then
+            if self.Destroyed then
                 return
             end
 
@@ -722,23 +579,20 @@ function ColorPreview.new(tab, options)
                 )
 
             if color then
-                self:SetColor(
-                    color
-                )
+                self:SetColor(color)
             else
-                self:_UpdateDisplay()
+                self:_SyncInputs()
             end
         end
     )
 
-    ------------------------------------------------------------
-    -- HEX INPUT
-    ------------------------------------------------------------
+    --------------------------------------------------------
+    -- HEX INPUT LOGIC
+    --------------------------------------------------------
 
     self.HexBox.FocusLost:Connect(
         function()
-            if self.Destroyed
-                or self._UpdatingInput then
+            if self.Destroyed then
                 return
             end
 
@@ -748,18 +602,16 @@ function ColorPreview.new(tab, options)
                 )
 
             if color then
-                self:SetColor(
-                    color
-                )
+                self:SetColor(color)
             else
-                self:_UpdateDisplay()
+                self:_SyncInputs()
             end
         end
     )
 
-    ------------------------------------------------------------
+    --------------------------------------------------------
     -- REGISTER
-    ------------------------------------------------------------
+    --------------------------------------------------------
 
     table.insert(
         self.Tab.Elements,
@@ -770,30 +622,23 @@ function ColorPreview.new(tab, options)
 end
 
 ------------------------------------------------------------
--- UPDATE DISPLAY
+-- SYNC INPUTS
 ------------------------------------------------------------
 
-function ColorPreview:_UpdateDisplay()
+function ColorPreview:_SyncInputs()
     if self.Destroyed then
         return
     end
 
-    self._UpdatingInput = true
-
-    self.PreviewFrame.BackgroundColor3 =
-        self.Color
-
     self.Color3Box.Text =
-        colorToString(
+        color3ToString(
             self.Color
         )
 
     self.HexBox.Text =
-        colorToHex(
+        color3ToHex(
             self.Color
         )
-
-    self._UpdatingInput = false
 end
 
 ------------------------------------------------------------
@@ -812,7 +657,10 @@ function ColorPreview:SetColor(color)
     self.Color =
         color
 
-    self:_UpdateDisplay()
+    self.PreviewFrame.BackgroundColor3 =
+        self.Color
+
+    self:_SyncInputs()
 
     task.spawn(
         function()
@@ -830,16 +678,6 @@ function ColorPreview:SetColor(color)
             end
         end
     )
-end
-
-------------------------------------------------------------
--- GET COLOR
-------------------------------------------------------------
-
-function ColorPreview:GetColor()
-    if self.Destroyed then
-        return nil
-    end
 
     return self.Color
 end
@@ -857,8 +695,7 @@ function ColorPreview:SetTitle(newTitle)
         tostring(newTitle)
 
     self.Container.Name =
-        self.Title
-        .. "_ColorPreview"
+        self.Title .. "_ColorPreview"
 
     self.TitleLabel.Text =
         self.Title
@@ -905,18 +742,13 @@ function ColorPreview:UpdateTheme(theme)
     self.TitleFrame.BackgroundColor3 =
         theme.ParagraphTitleFrame
         or theme.Background
-        or Color3.fromRGB(
-            32,
-            32,
-            32
-        )
+        or DEFAULT_BACKGROUND
 
     self.TitleFrame.BorderColor3 =
         theme.Border
 
     self.TitleLabel.TextColor3 =
         theme.Text
-        or DEFAULT_TEXT_COLOR
 
     --------------------------------------------------------
     -- PREVIEW
@@ -926,41 +758,47 @@ function ColorPreview:UpdateTheme(theme)
         theme.Border
 
     --------------------------------------------------------
-    -- INPUT PANEL
+    -- COLOR3 INPUT
     --------------------------------------------------------
 
     self.Color3Box.BackgroundColor3 =
-        theme.ColorPickerInput
-        or theme.Background
+        theme.TextBoxFrame
+        or DEFAULT_BACKGROUND
 
     self.Color3Box.BorderColor3 =
         theme.Border
 
     self.Color3Box.TextColor3 =
         theme.Text
-        or DEFAULT_TEXT_COLOR
 
     self.Color3Box.PlaceholderColor3 =
-        theme.ColorPickerPlaceholder
-        or DEFAULT_PLACEHOLDER_COLOR
+        theme.TextBoxText
+        or DEFAULT_PLACEHOLDER
+
+    --------------------------------------------------------
+    -- SEPARATOR
+    --------------------------------------------------------
+
+    self.Separator.BackgroundColor3 =
+        theme.Border
+
+    --------------------------------------------------------
+    -- HEX INPUT
+    --------------------------------------------------------
 
     self.HexBox.BackgroundColor3 =
-        theme.ColorPickerInput
-        or theme.Background
+        theme.TextBoxFrame
+        or DEFAULT_BACKGROUND
 
     self.HexBox.BorderColor3 =
         theme.Border
 
     self.HexBox.TextColor3 =
         theme.Text
-        or DEFAULT_TEXT_COLOR
 
     self.HexBox.PlaceholderColor3 =
-        theme.ColorPickerPlaceholder
-        or DEFAULT_PLACEHOLDER_COLOR
-
-    self.Divider.BackgroundColor3 =
-        theme.Border
+        theme.TextBoxText
+        or DEFAULT_PLACEHOLDER
 
     --------------------------------------------------------
     -- FONT
