@@ -199,6 +199,18 @@ function Tab:Divider(options)
         options or {}
     )
 end
+
+function Tab:ColorPicker(options)
+    if not self.Window.ColorPickerModule then
+        warn("ColorPickerModule chưa được load (Kiểm tra lại file init.lua)!")
+        return nil
+    end
+
+    return self.Window.ColorPickerModule.new(
+        self,
+        options
+    )
+end
 ----------------------------------------------------------------
 -- SELECT
 ----------------------------------------------------------------
