@@ -85,6 +85,9 @@ local TextBoxModule =
 
 local ParagraphModule =
     LoadModule("Components/Paragraph.lua")
+
+local LabelModule =
+    LoadModule("Components/Label.lua")
 ------------------------------------------------------------
 -- INJECT COMPONENTS
 ------------------------------------------------------------
@@ -109,6 +112,9 @@ WindowModule.TextBoxModule =
 
 WindowModule.ParagraphModule =
     ParagraphModule
+
+WindowModule.LabelModule =
+    LabelModule
 
 ------------------------------------------------------------
 -- CREATE WINDOW
