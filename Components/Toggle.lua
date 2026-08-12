@@ -5,6 +5,10 @@ local TweenService = game:GetService("TweenService")
 local Toggle = {}
 Toggle.__index = Toggle
 
+local CHECKBOX_SIZE = 30
+local ROW_HEIGHT = 30
+local TITLE_SIZE = 13
+
 function Toggle.new(tab, options)
     local self = setmetatable({}, Toggle)
 
@@ -15,7 +19,9 @@ function Toggle.new(tab, options)
 
     self.Title = tostring(options.Title or "Toggle")
     self.StateValue = options.State == true
-    self.Callback = type(options.Callback) == "function"
+
+    self.Callback =
+        type(options.Callback) == "function"
         and options.Callback
         or function() end
 
@@ -23,33 +29,46 @@ function Toggle.new(tab, options)
 
     local theme = self.Window.ThemeData
 
-    -- Container
-    self.Container = Instance.new("Frame")
+    ----------------------------------------------------------------
+    -- ROW / INTERACTION BUTTON
+    ----------------------------------------------------------------
+
+    -- Chính Container là TextButton.
+    -- Nhờ vậy UIListLayout của ContentFrame xử lý nó như một element
+    -- bình thường và không có InteractBtn thứ ba đẩy layout sang phải.
+
+    self.Container = Instance.new("TextButton")
     self.Container.Name = self.Title .. "_Toggle"
-    self.Container.Size = UDim2.new(1, 0, 0, 24)
+    self.Container.Size = UDim2.new(1, -12, 0, ROW_HEIGHT)
     self.Container.BackgroundTransparency = 1
+    self.Container.BorderSizePixel = 0
+    self.Container.Text = ""
+    self.Container.AutoButtonColor = false
+    self.Container.LayoutOrder = 0
     self.Container.Parent = self.Tab.ContentFrame
 
-    -- Interaction
-    self.InteractBtn = Instance.new("TextButton")
-    self.InteractBtn.Size = UDim2.new(1, 0, 1, 0)
-    self.InteractBtn.BackgroundTransparency = 1
-    self.InteractBtn.Text = ""
-    self.InteractBtn.ZIndex = 2
-    self.InteractBtn.Parent = self.Container
+    ----------------------------------------------------------------
+    -- HORIZONTAL LAYOUT
+    ----------------------------------------------------------------
 
-    -- Layout
     local layout = Instance.new("UIListLayout")
+    layout.Name = "ToggleLayout"
     layout.FillDirection = Enum.FillDirection.Horizontal
     layout.VerticalAlignment = Enum.VerticalAlignment.Center
+    layout.HorizontalAlignment = Enum.HorizontalAlignment.Left
     layout.Padding = UDim.new(0, 8)
     layout.SortOrder = Enum.SortOrder.LayoutOrder
     layout.Parent = self.Container
 
-    -- Outer checkbox
+    ----------------------------------------------------------------
+    -- CHECKBOX
+    ----------------------------------------------------------------
+
     self.CheckboxOuter = Instance.new("Frame")
     self.CheckboxOuter.Name = "Checkbox"
-    self.CheckboxOuter.Size = UDim2.new(0, 16, 0, 16)
+    self.CheckboxOuter.Size =
+        UDim2.new(0, CHECKBOX_SIZE, 0, CHECKBOX_SIZE)
+
     self.CheckboxOuter.BackgroundColor3 =
         theme.Background
 
@@ -60,17 +79,23 @@ function Toggle.new(tab, options)
     self.CheckboxOuter.LayoutOrder = 1
     self.CheckboxOuter.Parent = self.Container
 
-    -- Inner checkbox
+    ----------------------------------------------------------------
+    -- INNER CHECKBOX
+    ----------------------------------------------------------------
+
     self.InnerBox = Instance.new("Frame")
     self.InnerBox.Name = "Inner"
 
     self.InnerBox.Size =
         self.StateValue
-        and UDim2.new(0, 10, 0, 10)
+        and UDim2.new(0, 20, 0, 20)
         or UDim2.new(0, 0, 0, 0)
 
-    self.InnerBox.AnchorPoint = Vector2.new(0.5, 0.5)
-    self.InnerBox.Position = UDim2.new(0.5, 0, 0.5, 0)
+    self.InnerBox.AnchorPoint =
+        Vector2.new(0.5, 0.5)
+
+    self.InnerBox.Position =
+        UDim2.new(0.5, 0, 0.5, 0)
 
     self.InnerBox.BackgroundColor3 =
         theme.Checkbox or theme.Accent
@@ -78,30 +103,61 @@ function Toggle.new(tab, options)
     self.InnerBox.BorderSizePixel = 0
     self.InnerBox.Parent = self.CheckboxOuter
 
-    -- Title
+    ----------------------------------------------------------------
+    -- TITLE
+    ----------------------------------------------------------------
+
     self.TitleLabel = Instance.new("TextLabel")
     self.TitleLabel.Name = "Title"
-    self.TitleLabel.Size = UDim2.new(1, -24, 1, 0)
+
+    self.TitleLabel.Size =
+        UDim2.new(1, -(CHECKBOX_SIZE + 8), 1, 0)
+
     self.TitleLabel.BackgroundTransparency = 1
     self.TitleLabel.Text = self.Title
-    self.TitleLabel.TextColor3 = theme.Text
-    self.TitleLabel.Font = self.Window.CurrentFont
-    self.TitleLabel.TextSize = 13
-    self.TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+    self.TitleLabel.TextColor3 =
+        theme.Text
+
+    self.TitleLabel.Font =
+        self.Window.CurrentFont
+
+    self.TitleLabel.TextSize =
+        TITLE_SIZE
+
+    self.TitleLabel.TextXAlignment =
+        Enum.TextXAlignment.Left
+
+    self.TitleLabel.TextYAlignment =
+        Enum.TextYAlignment.Center
+
     self.TitleLabel.LayoutOrder = 2
     self.TitleLabel.Parent = self.Container
 
-    -- Click
-    self.InteractBtn.MouseButton1Click:Connect(function()
-        if self.Destroyed then return end
+    ----------------------------------------------------------------
+    -- CLICK
+    ----------------------------------------------------------------
+
+    self.Container.MouseButton1Click:Connect(function()
+        if self.Destroyed then
+            return
+        end
 
         self:State(not self.StateValue)
     end)
+
+    ----------------------------------------------------------------
+    -- REGISTER
+    ----------------------------------------------------------------
 
     table.insert(self.Tab.Elements, self)
 
     return self
 end
+
+----------------------------------------------------------------
+-- STATE
+----------------------------------------------------------------
 
 function Toggle:State(newState)
     if self.Destroyed then
@@ -116,7 +172,7 @@ function Toggle:State(newState)
 
     local targetSize =
         self.StateValue
-        and UDim2.new(0, 10, 0, 10)
+        and UDim2.new(0, 20, 0, 20)
         or UDim2.new(0, 0, 0, 0)
 
     local tween = TweenService:Create(
@@ -147,17 +203,70 @@ function Toggle:State(newState)
     return self.StateValue
 end
 
+----------------------------------------------------------------
+-- TITLE
+----------------------------------------------------------------
+
 function Toggle:SetTitle(newTitle)
-    if self.Destroyed then return end
+    if self.Destroyed then
+        return
+    end
 
-    self.Title = tostring(newTitle)
+    self.Title =
+        tostring(newTitle)
 
-    self.Container.Name = self.Title .. "_Toggle"
-    self.TitleLabel.Text = self.Title
+    self.Container.Name =
+        self.Title .. "_Toggle"
+
+    self.TitleLabel.Text =
+        self.Title
 end
 
+----------------------------------------------------------------
+-- FONT
+----------------------------------------------------------------
+
+function Toggle:SetFont(fontType)
+    if self.Destroyed then
+        return
+    end
+
+    if typeof(fontType) == "string"
+        and string.find(
+            string.lower(fontType),
+            "rbxassetid",
+            1,
+            true
+        ) then
+
+        local ok, customFont = pcall(function()
+            return Font.new(fontType)
+        end)
+
+        if ok and customFont then
+            self.TitleLabel.FontFace =
+                customFont
+        end
+
+        return
+    end
+
+    if typeof(fontType) == "EnumItem"
+        and fontType.EnumType == Enum.Font then
+
+        self.TitleLabel.Font =
+            fontType
+    end
+end
+
+----------------------------------------------------------------
+-- DESTROY
+----------------------------------------------------------------
+
 function Toggle:Destroy()
-    if self.Destroyed then return end
+    if self.Destroyed then
+        return
+    end
 
     self.Destroyed = true
 
@@ -174,8 +283,14 @@ function Toggle:Destroy()
     end
 end
 
+----------------------------------------------------------------
+-- THEME
+----------------------------------------------------------------
+
 function Toggle:UpdateTheme(theme)
-    if self.Destroyed then return end
+    if self.Destroyed then
+        return
+    end
 
     self.CheckboxOuter.BackgroundColor3 =
         theme.Background
@@ -186,11 +301,13 @@ function Toggle:UpdateTheme(theme)
     self.InnerBox.BackgroundColor3 =
         theme.Checkbox or theme.Accent
 
+    -- FIX: title luôn lấy text từ Theme
     self.TitleLabel.TextColor3 =
         theme.Text
 
-    self.TitleLabel.Font =
+    self:SetFont(
         self.Window.CurrentFont
+    )
 end
 
 return Toggle
