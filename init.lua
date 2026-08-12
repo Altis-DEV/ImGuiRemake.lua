@@ -29,12 +29,14 @@ local ButtonModule = LoadModule("Components/Button.lua")
 local ToggleModule = LoadModule("Components/Toggle.lua")
 local SliderModule = LoadModule("Components/Slider.lua")
 local DropdownModule = LoadModule("Components/Dropdown.lua")
+local TextBoxModule = LoadModule("Components/TextBox.lua")
 
 WindowModule._TabModule = TabModule
 WindowModule.ButtonModule = ButtonModule
 WindowModule.ToggleModule = ToggleModule
 WindowModule.SliderModule = SliderModule
-WindowModule.DropdownModule = DropdownModule
+WindowModule.TextBoxModule = TextBoxModule
+
 
 function ImGui:CreateWindow(options)
     return WindowModule.new(
