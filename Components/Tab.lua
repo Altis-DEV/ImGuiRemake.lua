@@ -140,6 +140,18 @@ function Tab:Slider(options)
     )
 end
 
+function Tab:Dropdown(options)
+    if not self.Window.DropdownModule then
+        warn("DropdownModule chưa được load!")
+        return nil
+    end
+
+    return self.Window.DropdownModule.new(
+        self,
+        options or {}
+    )
+end
+
 ----------------------------------------------------------------
 -- SELECT
 ----------------------------------------------------------------
