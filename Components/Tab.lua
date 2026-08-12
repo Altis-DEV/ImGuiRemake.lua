@@ -128,6 +128,18 @@ function Tab:Toggle(options)
     )
 end
 
+function Tab:Slider(options)
+    if not self.Window.SliderModule then
+        warn("SliderModule chưa được load!")
+        return nil
+    end
+
+    return self.Window.SliderModule.new(
+        self,
+        options or {}
+    )
+end
+
 ----------------------------------------------------------------
 -- SELECT
 ----------------------------------------------------------------
