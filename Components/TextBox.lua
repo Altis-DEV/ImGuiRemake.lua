@@ -3,11 +3,15 @@
 local TextBox = {}
 TextBox.__index = TextBox
 
-local UserInputService = game:GetService("UserInputService")
-
 local ELEMENT_HEIGHT = 30
 local TEXTBOX_WIDTH_SCALE = 0.5
 local ELEMENT_GAP = 8
+
+local DEFAULT_SUBTITLE_COLOR =
+    Color3.fromRGB(150, 150, 150)
+
+local DEFAULT_TEXT_COLOR =
+    Color3.fromRGB(255, 255, 255)
 
 function TextBox.new(tab, options)
     options = options or {}
@@ -103,12 +107,11 @@ function TextBox.new(tab, options)
         self.Container
 
     ------------------------------------------------------------
-    -- ROBLOX TEXTBOX
+    -- INPUT
     ------------------------------------------------------------
 
     self.Input = Instance.new("TextBox")
-    self.Input.Name =
-        "Input"
+    self.Input.Name = "Input"
 
     self.Input.Size =
         UDim2.new(
@@ -134,15 +137,15 @@ function TextBox.new(tab, options)
     self.Input.PlaceholderText =
         self.Subtitle
 
+    -- Subtitle / placeholder: XÁM
     self.Input.PlaceholderColor3 =
         theme.TextBoxText
-        or theme.Text
-        or Color3.fromRGB(150, 150, 150)
+        or DEFAULT_SUBTITLE_COLOR
 
+    -- Text người dùng nhập: màu Text của theme
     self.Input.TextColor3 =
-        theme.TextBoxText
-        or theme.Text
-        or Color3.fromRGB(255, 255, 255)
+        theme.Text
+        or DEFAULT_TEXT_COLOR
 
     self.Input.TextSize = 13
     self.Input.Font =
@@ -154,9 +157,7 @@ function TextBox.new(tab, options)
     self.Input.TextYAlignment =
         Enum.TextYAlignment.Center
 
-    self.Input.ClearTextOnFocus =
-        false
-
+    self.Input.ClearTextOnFocus = false
     self.Input.TextWrapped = false
 
     self.Input.Parent =
@@ -167,8 +168,7 @@ function TextBox.new(tab, options)
     ------------------------------------------------------------
 
     self.TitleLabel = Instance.new("TextLabel")
-    self.TitleLabel.Name =
-        "Title"
+    self.TitleLabel.Name = "Title"
 
     self.TitleLabel.Size =
         UDim2.new(
@@ -193,7 +193,7 @@ function TextBox.new(tab, options)
 
     self.TitleLabel.TextColor3 =
         theme.Text
-        or Color3.fromRGB(255, 255, 255)
+        or DEFAULT_TEXT_COLOR
 
     self.TitleLabel.TextSize = 13
     self.TitleLabel.Font =
@@ -213,7 +213,6 @@ function TextBox.new(tab, options)
     ------------------------------------------------------------
 
     self.Input.Focused:Connect(function()
-
         if self.Destroyed then
             return
         end
@@ -223,9 +222,8 @@ function TextBox.new(tab, options)
 
             self.HasFocusedOnce = true
 
-            self.Input.Text = ""
             self.Text = ""
-
+            self.Input.Text = ""
         end
     end)
 
@@ -236,7 +234,6 @@ function TextBox.new(tab, options)
     self.Input:GetPropertyChangedSignal(
         "Text"
     ):Connect(function()
-
         if self.Destroyed then
             return
         end
@@ -245,7 +242,6 @@ function TextBox.new(tab, options)
             self.Input.Text
 
         task.spawn(function()
-
             local ok, err =
                 pcall(
                     self.Callback,
@@ -258,7 +254,6 @@ function TextBox.new(tab, options)
                     err
                 )
             end
-
         end)
     end)
 
@@ -361,13 +356,11 @@ function TextBox:SetFont(fontType)
             end)
 
         if ok and customFont then
-
             self.Input.FontFace =
                 customFont
 
             self.TitleLabel.FontFace =
                 customFont
-
         end
 
         return
@@ -381,7 +374,6 @@ function TextBox:SetFont(fontType)
 
         self.TitleLabel.Font =
             fontType
-
     end
 end
 
@@ -394,6 +386,10 @@ function TextBox:UpdateTheme(theme)
         return
     end
 
+    --------------------------------------------------------
+    -- FRAME
+    --------------------------------------------------------
+
     self.TextBoxFrame.BackgroundColor3 =
         theme.TextBoxFrame
         or theme.Border
@@ -403,19 +399,37 @@ function TextBox:UpdateTheme(theme)
         theme.Border
         or Color3.fromRGB(60, 60, 60)
 
+    --------------------------------------------------------
+    -- USER INPUT TEXT
+    --
+    -- Dùng theme.Text, KHÔNG dùng TextBoxText
+    --------------------------------------------------------
+
     self.Input.TextColor3 =
-        theme.TextBoxText
-        or theme.Text
-        or Color3.fromRGB(255, 255, 255)
+        theme.Text
+        or DEFAULT_TEXT_COLOR
+
+    --------------------------------------------------------
+    -- SUBTITLE / PLACEHOLDER
+    --
+    -- Dùng TextBoxText, mặc định là xám
+    --------------------------------------------------------
 
     self.Input.PlaceholderColor3 =
         theme.TextBoxText
-        or theme.Text
-        or Color3.fromRGB(150, 150, 150)
+        or DEFAULT_SUBTITLE_COLOR
+
+    --------------------------------------------------------
+    -- TITLE
+    --------------------------------------------------------
 
     self.TitleLabel.TextColor3 =
         theme.Text
-        or Color3.fromRGB(255, 255, 255)
+        or DEFAULT_TEXT_COLOR
+
+    --------------------------------------------------------
+    -- FONT
+    --------------------------------------------------------
 
     self:SetFont(
         self.Window.CurrentFont
@@ -441,14 +455,11 @@ function TextBox:Destroy()
     for i, element in ipairs(
         self.Tab.Elements
     ) do
-
         if element == self then
-
             table.remove(
                 self.Tab.Elements,
                 i
             )
-
             break
         end
     end
