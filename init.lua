@@ -88,6 +88,9 @@ local ParagraphModule =
 
 local LabelModule =
     LoadModule("Components/Label.lua")
+
+local DividerModule =
+    LoadModule("Components/Divider.lua")
 ------------------------------------------------------------
 -- INJECT COMPONENTS
 ------------------------------------------------------------
@@ -115,6 +118,9 @@ WindowModule.ParagraphModule =
 
 WindowModule.LabelModule =
     LabelModule
+
+WindowModule.DividerModule =
+    DividerModule
 
 ------------------------------------------------------------
 -- CREATE WINDOW
