@@ -7,7 +7,7 @@ local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 
 local ROW_HEIGHT = 30
-local SLIDER_WIDTH_SCALE = 0.25
+local SLIDER_WIDTH_SCALE = 0.5
 local ELEMENT_GAP = 8
 
 local function isPointerInput(input)
