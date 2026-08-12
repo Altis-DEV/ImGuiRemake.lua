@@ -5,38 +5,109 @@ local ImGui = {}
 local repo =
     "https://raw.githubusercontent.com/Altis-DEV/ImGuiRemake.lua/refs/heads/main/"
 
-local function LoadModule(path)
-    local source = game:HttpGet(repo .. path)
-    local chunk, err = loadstring(source)
+------------------------------------------------------------
+-- MODULE LOADER
+------------------------------------------------------------
 
-    if not chunk then
-        error(("Failed to load %s:\n%s"):format(path, tostring(err)), 2)
+local function LoadModule(path)
+    local okHttp, source = pcall(function()
+        return game:HttpGet(repo .. path)
+    end)
+
+    if not okHttp then
+        error(
+            ("Không thể tải module %s:\n%s")
+            :format(path, tostring(source)),
+            2
+        )
     end
 
-    local result = chunk()
+    local chunk, compileError =
+        loadstring(source)
+
+    if not chunk then
+        error(
+            ("Không thể compile module %s:\n%s")
+            :format(path, tostring(compileError)),
+            2
+        )
+    end
+
+    local okRun, result =
+        pcall(chunk)
+
+    if not okRun then
+        error(
+            ("Lỗi khi chạy module %s:\n%s")
+            :format(path, tostring(result)),
+            2
+        )
+    end
 
     if result == nil then
-        error(("Module %s returned nil"):format(path), 2)
+        error(
+            ("Module %s trả về nil!")
+            :format(path),
+            2
+        )
     end
 
     return result
 end
 
-local Theme = LoadModule("Theme.lua")
-local WindowModule = LoadModule("Components/Window.lua")
-local TabModule = LoadModule("Components/Tab.lua")
-local ButtonModule = LoadModule("Components/Button.lua")
-local ToggleModule = LoadModule("Components/Toggle.lua")
-local SliderModule = LoadModule("Components/Slider.lua")
-local DropdownModule = LoadModule("Components/Dropdown.lua")
-local TextBoxModule = LoadModule("Components/TextBox.lua")
+------------------------------------------------------------
+-- LOAD MODULES
+------------------------------------------------------------
 
-WindowModule._TabModule = TabModule
-WindowModule.ButtonModule = ButtonModule
-WindowModule.ToggleModule = ToggleModule
-WindowModule.SliderModule = SliderModule
-WindowModule.TextBoxModule = TextBoxModule
+local Theme =
+    LoadModule("Theme.lua")
 
+local WindowModule =
+    LoadModule("Components/Window.lua")
+
+local TabModule =
+    LoadModule("Components/Tab.lua")
+
+local ButtonModule =
+    LoadModule("Components/Button.lua")
+
+local ToggleModule =
+    LoadModule("Components/Toggle.lua")
+
+local SliderModule =
+    LoadModule("Components/Slider.lua")
+
+local DropdownModule =
+    LoadModule("Components/Dropdown.lua")
+
+local TextBoxModule =
+    LoadModule("Components/TextBox.lua")
+
+------------------------------------------------------------
+-- INJECT COMPONENTS
+------------------------------------------------------------
+
+WindowModule._TabModule =
+    TabModule
+
+WindowModule.ButtonModule =
+    ButtonModule
+
+WindowModule.ToggleModule =
+    ToggleModule
+
+WindowModule.SliderModule =
+    SliderModule
+
+WindowModule.DropdownModule =
+    DropdownModule
+
+WindowModule.TextBoxModule =
+    TextBoxModule
+
+------------------------------------------------------------
+-- CREATE WINDOW
+------------------------------------------------------------
 
 function ImGui:CreateWindow(options)
     return WindowModule.new(
@@ -46,8 +117,15 @@ function ImGui:CreateWindow(options)
     )
 end
 
+------------------------------------------------------------
+-- CREATE THEME
+------------------------------------------------------------
+
 function ImGui:CreateTheme(name, colors)
-    return Theme:CreateTheme(name, colors)
+    return Theme:CreateTheme(
+        name,
+        colors
+    )
 end
 
 return ImGui
