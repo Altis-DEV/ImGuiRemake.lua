@@ -5,7 +5,6 @@ Paragraph.__index = Paragraph
 
 local PADDING_X = 8
 local PADDING_Y = 6
-
 local DEFAULT_TEXT_SIZE = 13
 
 local DEFAULT_BACKGROUND =
@@ -16,10 +15,6 @@ local DEFAULT_TEXT_BACKGROUND =
 
 local DEFAULT_TEXT_COLOR =
     Color3.fromRGB(255, 255, 255)
-
-------------------------------------------------------------
--- FONT HELPER
-------------------------------------------------------------
 
 local function setFont(instance, fontType)
     if typeof(fontType) == "string"
@@ -48,25 +43,33 @@ local function setFont(instance, fontType)
     end
 end
 
-------------------------------------------------------------
--- CONSTRUCTOR
-------------------------------------------------------------
-
 function Paragraph.new(tab, options)
     options = options or {}
+
+    ------------------------------------------------------------
+    -- TITLE IS REQUIRED
+    ------------------------------------------------------------
+
+    if options.Title == nil then
+        error(
+            "Paragraph requires a Title",
+            2
+        )
+    end
 
     local self = setmetatable({}, Paragraph)
 
     self.Tab = tab
     self.Window = tab.Window
 
-    self.Title = tostring(
-        options.Title or ""
-    )
+    self.Title = tostring(options.Title)
 
-    self.Text = tostring(
-        options.Text or ""
-    )
+    -- Text is optional
+    self.HasText = options.Text ~= nil
+
+    self.Text = self.HasText
+        and tostring(options.Text)
+        or ""
 
     self.Destroyed = false
 
@@ -80,12 +83,7 @@ function Paragraph.new(tab, options)
     self.Container.Name = "Paragraph"
 
     self.Container.Size =
-        UDim2.new(
-            1,
-            0,
-            0,
-            0
-        )
+        UDim2.new(1, 0, 0, 0)
 
     self.Container.AutomaticSize =
         Enum.AutomaticSize.Y
@@ -96,7 +94,7 @@ function Paragraph.new(tab, options)
         self.Tab.ContentFrame
 
     ------------------------------------------------------------
-    -- INNER PARAGRAPH CONTAINER
+    -- INNER CONTENT CONTAINER
     ------------------------------------------------------------
 
     self.ContentContainer = Instance.new("Frame")
@@ -104,12 +102,7 @@ function Paragraph.new(tab, options)
         "ContentContainer"
 
     self.ContentContainer.Size =
-        UDim2.new(
-            1,
-            0,
-            0,
-            0
-        )
+        UDim2.new(1, 0, 0, 0)
 
     self.ContentContainer.AutomaticSize =
         Enum.AutomaticSize.Y
@@ -128,12 +121,7 @@ function Paragraph.new(tab, options)
         "TitleFrame"
 
     self.TitleFrame.Size =
-        UDim2.new(
-            1,
-            0,
-            0,
-            0
-        )
+        UDim2.new(1, 0, 0, 0)
 
     self.TitleFrame.AutomaticSize =
         Enum.AutomaticSize.Y
@@ -148,7 +136,7 @@ function Paragraph.new(tab, options)
         or Color3.fromRGB(60, 60, 60)
 
     self.TitleFrame.BorderSizePixel = 1
-
+    self.TitleFrame.LayoutOrder = 1
     self.TitleFrame.Parent =
         self.ContentContainer
 
@@ -157,8 +145,7 @@ function Paragraph.new(tab, options)
     ------------------------------------------------------------
 
     self.TitleLabel = Instance.new("TextLabel")
-    self.TitleLabel.Name =
-        "Title"
+    self.TitleLabel.Name = "Title"
 
     self.TitleLabel.Size =
         UDim2.new(
@@ -222,114 +209,103 @@ function Paragraph.new(tab, options)
 
     ------------------------------------------------------------
     -- TEXT FRAME
+    -- Only created when Text exists.
     ------------------------------------------------------------
 
-    self.TextFrame = Instance.new("Frame")
-    self.TextFrame.Name =
-        "TextFrame"
+    if self.HasText then
 
-    self.TextFrame.Size =
-        UDim2.new(
-            1,
-            0,
-            0,
-            0
-        )
+        self.TextFrame = Instance.new("Frame")
+        self.TextFrame.Name =
+            "TextFrame"
 
-    self.TextFrame.AutomaticSize =
-        Enum.AutomaticSize.Y
+        self.TextFrame.Size =
+            UDim2.new(1, 0, 0, 0)
 
-    self.TextFrame.BackgroundColor3 =
-        theme.ParagraphTextFrame
-        or theme.ElementContainer
-        or DEFAULT_TEXT_BACKGROUND
+        self.TextFrame.AutomaticSize =
+            Enum.AutomaticSize.Y
 
-    self.TextFrame.BorderColor3 =
-        theme.Border
-        or Color3.fromRGB(60, 60, 60)
+        self.TextFrame.BackgroundColor3 =
+            theme.ParagraphTextFrame
+            or theme.ElementContainer
+            or DEFAULT_TEXT_BACKGROUND
 
-    self.TextFrame.BorderSizePixel = 1
+        self.TextFrame.BorderColor3 =
+            theme.Border
+            or Color3.fromRGB(60, 60, 60)
 
-    -- Đặt ngay bên dưới TitleFrame,
-    -- không có khoảng cách giữa 2 frame.
-    self.TextFrame.Position =
-        UDim2.new(
-            0,
-            0,
-            0,
-            0
-        )
+        self.TextFrame.BorderSizePixel = 1
+        self.TextFrame.LayoutOrder = 2
+        self.TextFrame.Parent =
+            self.ContentContainer
 
-    self.TextFrame.Parent =
-        self.ContentContainer
+        --------------------------------------------------------
+        -- TEXT LABEL
+        --------------------------------------------------------
 
-    ------------------------------------------------------------
-    -- TEXT LABEL
-    ------------------------------------------------------------
+        self.TextLabel = Instance.new("TextLabel")
+        self.TextLabel.Name =
+            "Text"
 
-    self.TextLabel = Instance.new("TextLabel")
-    self.TextLabel.Name =
-        "Text"
+        self.TextLabel.Size =
+            UDim2.new(
+                1,
+                -(PADDING_X * 2),
+                0,
+                0
+            )
 
-    self.TextLabel.Size =
-        UDim2.new(
-            1,
-            -(PADDING_X * 2),
-            0,
-            0
-        )
+        self.TextLabel.AutomaticSize =
+            Enum.AutomaticSize.Y
 
-    self.TextLabel.AutomaticSize =
-        Enum.AutomaticSize.Y
+        self.TextLabel.BackgroundTransparency = 1
 
-    self.TextLabel.BackgroundTransparency = 1
+        self.TextLabel.Text =
+            self.Text
 
-    self.TextLabel.Text =
-        self.Text
+        self.TextLabel.RichText = true
+        self.TextLabel.TextWrapped = true
 
-    self.TextLabel.RichText = true
-    self.TextLabel.TextWrapped = true
+        self.TextLabel.TextXAlignment =
+            Enum.TextXAlignment.Left
 
-    self.TextLabel.TextXAlignment =
-        Enum.TextXAlignment.Left
+        self.TextLabel.TextYAlignment =
+            Enum.TextYAlignment.Center
 
-    self.TextLabel.TextYAlignment =
-        Enum.TextYAlignment.Center
+        self.TextLabel.TextSize =
+            DEFAULT_TEXT_SIZE
 
-    self.TextLabel.TextSize =
-        DEFAULT_TEXT_SIZE
+        self.TextLabel.Font =
+            self.Window.CurrentFont
 
-    self.TextLabel.Font =
-        self.Window.CurrentFont
+        self.TextLabel.TextColor3 =
+            theme.Text
+            or DEFAULT_TEXT_COLOR
 
-    self.TextLabel.TextColor3 =
-        theme.Text
-        or DEFAULT_TEXT_COLOR
+        self.TextLabel.Parent =
+            self.TextFrame
 
-    self.TextLabel.Parent =
-        self.TextFrame
+        --------------------------------------------------------
+        -- TEXT PADDING
+        --------------------------------------------------------
 
-    ------------------------------------------------------------
-    -- TEXT PADDING
-    ------------------------------------------------------------
+        local textPadding =
+            Instance.new("UIPadding")
 
-    local textPadding =
-        Instance.new("UIPadding")
+        textPadding.PaddingTop =
+            UDim.new(0, PADDING_Y)
 
-    textPadding.PaddingTop =
-        UDim.new(0, PADDING_Y)
+        textPadding.PaddingBottom =
+            UDim.new(0, PADDING_Y)
 
-    textPadding.PaddingBottom =
-        UDim.new(0, PADDING_Y)
+        textPadding.PaddingLeft =
+            UDim.new(0, PADDING_X)
 
-    textPadding.PaddingLeft =
-        UDim.new(0, PADDING_X)
+        textPadding.PaddingRight =
+            UDim.new(0, PADDING_X)
 
-    textPadding.PaddingRight =
-        UDim.new(0, PADDING_X)
-
-    textPadding.Parent =
-        self.TextFrame
+        textPadding.Parent =
+            self.TextFrame
+    end
 
     ------------------------------------------------------------
     -- LAYOUT
@@ -347,6 +323,7 @@ function Paragraph.new(tab, options)
     contentLayout.SortOrder =
         Enum.SortOrder.LayoutOrder
 
+    -- Overlap the two borders by 1px.
     contentLayout.Padding =
         UDim.new(0, -1)
 
@@ -382,6 +359,10 @@ function Paragraph:SetTitle(newTitle)
         return
     end
 
+    if newTitle == nil then
+        return
+    end
+
     self.Title =
         tostring(newTitle)
 
@@ -396,6 +377,96 @@ end
 function Paragraph:SetText(newText)
     if self.Destroyed then
         return
+    end
+
+    if newText == nil then
+        return
+    end
+
+    -- If Text didn't exist during construction,
+    -- create the TextFrame now.
+    if not self.HasText then
+        self.HasText = true
+
+        local theme = self.Window.ThemeData
+
+        self.TextFrame = Instance.new("Frame")
+        self.TextFrame.Name = "TextFrame"
+
+        self.TextFrame.Size =
+            UDim2.new(1, 0, 0, 0)
+
+        self.TextFrame.AutomaticSize =
+            Enum.AutomaticSize.Y
+
+        self.TextFrame.BackgroundColor3 =
+            theme.ParagraphTextFrame
+            or theme.ElementContainer
+            or DEFAULT_TEXT_BACKGROUND
+
+        self.TextFrame.BorderColor3 =
+            theme.Border
+            or Color3.fromRGB(60, 60, 60)
+
+        self.TextFrame.BorderSizePixel = 1
+        self.TextFrame.LayoutOrder = 2
+        self.TextFrame.Parent =
+            self.ContentContainer
+
+        self.TextLabel = Instance.new("TextLabel")
+        self.TextLabel.Name = "Text"
+
+        self.TextLabel.Size =
+            UDim2.new(
+                1,
+                -(PADDING_X * 2),
+                0,
+                0
+            )
+
+        self.TextLabel.AutomaticSize =
+            Enum.AutomaticSize.Y
+
+        self.TextLabel.BackgroundTransparency = 1
+        self.TextLabel.RichText = true
+        self.TextLabel.TextWrapped = true
+
+        self.TextLabel.TextXAlignment =
+            Enum.TextXAlignment.Left
+
+        self.TextLabel.TextYAlignment =
+            Enum.TextYAlignment.Center
+
+        self.TextLabel.TextSize =
+            DEFAULT_TEXT_SIZE
+
+        self.TextLabel.Font =
+            self.Window.CurrentFont
+
+        self.TextLabel.TextColor3 =
+            theme.Text
+            or DEFAULT_TEXT_COLOR
+
+        self.TextLabel.Parent =
+            self.TextFrame
+
+        local textPadding =
+            Instance.new("UIPadding")
+
+        textPadding.PaddingTop =
+            UDim.new(0, PADDING_Y)
+
+        textPadding.PaddingBottom =
+            UDim.new(0, PADDING_Y)
+
+        textPadding.PaddingLeft =
+            UDim.new(0, PADDING_X)
+
+        textPadding.PaddingRight =
+            UDim.new(0, PADDING_X)
+
+        textPadding.Parent =
+            self.TextFrame
     end
 
     self.Text =
@@ -419,10 +490,12 @@ function Paragraph:SetFont(fontType)
         fontType
     )
 
-    setFont(
-        self.TextLabel,
-        fontType
-    )
+    if self.TextLabel then
+        setFont(
+            self.TextLabel,
+            fontType
+        )
+    end
 end
 
 ------------------------------------------------------------
@@ -435,7 +508,7 @@ function Paragraph:UpdateTheme(theme)
     end
 
     --------------------------------------------------------
-    -- TITLE FRAME
+    -- TITLE
     --------------------------------------------------------
 
     self.TitleFrame.BackgroundColor3 =
@@ -447,30 +520,32 @@ function Paragraph:UpdateTheme(theme)
         theme.Border
         or Color3.fromRGB(60, 60, 60)
 
-    --------------------------------------------------------
-    -- TEXT FRAME
-    --------------------------------------------------------
-
-    self.TextFrame.BackgroundColor3 =
-        theme.ParagraphTextFrame
-        or theme.ElementContainer
-        or DEFAULT_TEXT_BACKGROUND
-
-    self.TextFrame.BorderColor3 =
-        theme.Border
-        or Color3.fromRGB(60, 60, 60)
+    self.TitleLabel.TextColor3 =
+        theme.Text
+        or DEFAULT_TEXT_COLOR
 
     --------------------------------------------------------
     -- TEXT
     --------------------------------------------------------
 
-    self.TitleLabel.TextColor3 =
-        theme.Text
-        or DEFAULT_TEXT_COLOR
+    if self.TextFrame then
 
-    self.TextLabel.TextColor3 =
-        theme.Text
-        or DEFAULT_TEXT_COLOR
+        self.TextFrame.BackgroundColor3 =
+            theme.ParagraphTextFrame
+            or theme.ElementContainer
+            or DEFAULT_TEXT_BACKGROUND
+
+        self.TextFrame.BorderColor3 =
+            theme.Border
+            or Color3.fromRGB(60, 60, 60)
+
+    end
+
+    if self.TextLabel then
+        self.TextLabel.TextColor3 =
+            theme.Text
+            or DEFAULT_TEXT_COLOR
+    end
 
     --------------------------------------------------------
     -- FONT
@@ -500,6 +575,7 @@ function Paragraph:Destroy()
     for i, element in ipairs(
         self.Tab.Elements
     ) do
+
         if element == self then
             table.remove(
                 self.Tab.Elements,
@@ -507,6 +583,7 @@ function Paragraph:Destroy()
             )
             break
         end
+
     end
 end
 
