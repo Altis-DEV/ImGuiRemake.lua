@@ -24,9 +24,13 @@ Theme.Themes = {
 
         Checkbox = Color3.fromRGB(0, 170, 255),
 
-        -- Slider
         SliderFrame = Color3.fromRGB(38, 38, 38),
         SliderBar = Color3.fromRGB(40, 90, 175),
+
+        DropdownFrame = Color3.fromRGB(38, 38, 38),
+        DropdownOption = Color3.fromRGB(30, 30, 30),
+        DropdownOptionSelected = Color3.fromRGB(40, 90, 175),
+        DropdownOptionHover = Color3.fromRGB(50, 50, 50),
     }
 }
 
