@@ -137,7 +137,7 @@ function TextBox.new(tab, options)
     self.Input.PlaceholderColor3 =
         theme.TextBoxText
         or theme.Text
-        or Color3.fromRGB(255, 255, 255)
+        or Color3.fromRGB(150, 150, 150)
 
     self.Input.TextColor3 =
         theme.TextBoxText
@@ -411,7 +411,7 @@ function TextBox:UpdateTheme(theme)
     self.Input.PlaceholderColor3 =
         theme.TextBoxText
         or theme.Text
-        or Color3.fromRGB(255, 255, 255)
+        or Color3.fromRGB(150, 150, 150)
 
     self.TitleLabel.TextColor3 =
         theme.Text
