@@ -187,6 +187,18 @@ function Tab:Label(options)
         options or {}
     )
 end
+
+function Tab:Divider(options)
+    if not self.Window.DividerModule then
+        warn("DividerModule chưa được load!")
+        return nil
+    end
+
+    return self.Window.DividerModule.new(
+        self,
+        options or {}
+    )
+end
 ----------------------------------------------------------------
 -- SELECT
 ----------------------------------------------------------------
