@@ -27,11 +27,12 @@ local WindowModule = LoadModule("Components/Window.lua")
 local TabModule = LoadModule("Components/Tab.lua")
 local ButtonModule = LoadModule("Components/Button.lua")
 local ToggleModule = LoadModule("Components/Toggle.lua")
+local SliderModule = LoadModule("Components/Slider.lua")
 
--- Dependency injection
 WindowModule._TabModule = TabModule
 WindowModule.ButtonModule = ButtonModule
 WindowModule.ToggleModule = ToggleModule
+WindowModule.SliderModule = SliderModule
 
 function ImGui:CreateWindow(options)
     return WindowModule.new(
