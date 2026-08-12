@@ -17,7 +17,20 @@ local function LoadModule(path)
     if not okHttp then
         error(
             ("Không thể tải module %s:\n%s")
-            :format(path, tostring(source)),
+            :format(
+                path,
+                tostring(source)
+            ),
+            2
+        )
+    end
+
+    if type(source) ~= "string"
+        or source == "" then
+
+        error(
+            ("Module %s trả về source rỗng!")
+            :format(path),
             2
         )
     end
@@ -28,7 +41,10 @@ local function LoadModule(path)
     if not chunk then
         error(
             ("Không thể compile module %s:\n%s")
-            :format(path, tostring(compileError)),
+            :format(
+                path,
+                tostring(compileError)
+            ),
             2
         )
     end
@@ -39,7 +55,10 @@ local function LoadModule(path)
     if not okRun then
         error(
             ("Lỗi khi chạy module %s:\n%s")
-            :format(path, tostring(result)),
+            :format(
+                path,
+                tostring(result)
+            ),
             2
         )
     end
@@ -56,7 +75,20 @@ local function LoadModule(path)
 end
 
 ------------------------------------------------------------
--- LOAD MODULES
+-- CORE MODULES
+------------------------------------------------------------
+
+local Theme =
+    LoadModule("Theme.lua")
+
+local WindowModule =
+    LoadModule("Components/Window.lua")
+
+local TabModule =
+    LoadModule("Components/Tab.lua")
+
+------------------------------------------------------------
+-- COMPONENT MODULES
 ------------------------------------------------------------
 
 local ButtonModule =
@@ -88,6 +120,17 @@ local ColorPickerModule =
 
 local ImageModule =
     LoadModule("Components/Image.lua")
+
+------------------------------------------------------------
+-- INJECT TAB MODULE
+------------------------------------------------------------
+
+WindowModule._TabModule =
+    TabModule
+
+------------------------------------------------------------
+-- INJECT COMPONENT MODULES
+------------------------------------------------------------
 
 WindowModule.ButtonModule =
     ButtonModule
@@ -125,7 +168,7 @@ WindowModule.ImageModule =
 
 function ImGui:CreateWindow(options)
     return WindowModule.new(
-        options,
+        options or {},
         Theme:GetTheme("Default"),
         Theme
     )
@@ -141,5 +184,17 @@ function ImGui:CreateTheme(name, colors)
         colors
     )
 end
+
+------------------------------------------------------------
+-- OPTIONAL: GET THEME
+------------------------------------------------------------
+
+function ImGui:GetTheme(name)
+    return Theme:GetTheme(name)
+end
+
+------------------------------------------------------------
+-- RETURN
+------------------------------------------------------------
 
 return ImGui
