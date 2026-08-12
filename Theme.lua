@@ -11,9 +11,9 @@ Theme.Themes = {
         ElementContainer = Color3.fromRGB(25, 25, 25),
 
         Text = Color3.fromRGB(255, 255, 255),
-        CloseBtn = Color3.fromRGB(235, 70, 70),
-
         Border = Color3.fromRGB(60, 60, 60),
+
+        CloseBtn = Color3.fromRGB(235, 70, 70),
 
         Tab = Color3.fromRGB(35, 35, 35),
         TabHighlight = Color3.fromRGB(40, 90, 175),
@@ -33,6 +33,8 @@ Theme.Themes = {
         DropdownOptionHover = Color3.fromRGB(50, 50, 50),
 
         TextBoxFrame = Color3.fromRGB(38, 38, 38),
+
+        -- Màu subtitle / placeholder
         TextBoxText = Color3.fromRGB(150, 150, 150),
     }
 }
