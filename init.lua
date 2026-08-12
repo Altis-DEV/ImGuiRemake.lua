@@ -91,6 +91,10 @@ local LabelModule =
 
 local DividerModule =
     LoadModule("Components/Divider.lua")
+
+local ColorPickerModule =
+    LoadModule("Components/ColorPicker.lua")
+
 ------------------------------------------------------------
 -- INJECT COMPONENTS
 ------------------------------------------------------------
@@ -121,6 +125,9 @@ WindowModule.LabelModule =
 
 WindowModule.DividerModule =
     DividerModule
+
+WindowModule.ColorPickerModule = 
+    ColorPickerModule
 
 ------------------------------------------------------------
 -- CREATE WINDOW
