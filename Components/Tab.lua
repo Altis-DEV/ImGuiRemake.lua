@@ -164,6 +164,18 @@ function Tab:TextBox(options)
     )
 end
 
+function Tab:Paragraph(options)
+    if not self.Window.ParagraphModule then
+        warn("ParagraphModule chưa được load!")
+        return nil
+    end
+
+    return self.Window.ParagraphModule.new(
+        self,
+        options or {}
+    )
+end
+
 ----------------------------------------------------------------
 -- SELECT
 ----------------------------------------------------------------
