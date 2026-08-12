@@ -24,13 +24,16 @@ function Tab.new(window, options)
     end
 
     if not container:FindFirstChildOfClass("UIPadding") then
-        local padding = Instance.new("UIPadding")
-        padding.PaddingLeft = UDim.new(0, 6)
-        padding.PaddingRight = UDim.new(0, 6)
-        padding.Parent = container
+        local containerPadding = Instance.new("UIPadding")
+        containerPadding.PaddingLeft = UDim.new(0, 6)
+        containerPadding.PaddingRight = UDim.new(0, 6)
+        containerPadding.Parent = container
     end
 
-    -- Tab button
+    ----------------------------------------------------------------
+    -- TAB BUTTON
+    ----------------------------------------------------------------
+
     self.TabBtn = Instance.new("TextButton")
     self.TabBtn.Name = self.Name .. "_TabBtn"
     self.TabBtn.Size = UDim2.new(0, 0, 0, 26)
@@ -42,14 +45,18 @@ function Tab.new(window, options)
     self.TabBtn.TextColor3 = self.Window.ThemeData.Text
     self.TabBtn.TextSize = 13
     self.TabBtn.Font = self.Window.CurrentFont
+    self.TabBtn.AutoButtonColor = false
     self.TabBtn.Parent = container
 
-    local buttonPadding = Instance.new("UIPadding")
-    buttonPadding.PaddingLeft = UDim.new(0, 12)
-    buttonPadding.PaddingRight = UDim.new(0, 12)
-    buttonPadding.Parent = self.TabBtn
+    local btnPadding = Instance.new("UIPadding")
+    btnPadding.PaddingLeft = UDim.new(0, 12)
+    btnPadding.PaddingRight = UDim.new(0, 12)
+    btnPadding.Parent = self.TabBtn
 
-    -- Content
+    ----------------------------------------------------------------
+    -- CONTENT
+    ----------------------------------------------------------------
+
     self.ContentFrame = Instance.new("Frame")
     self.ContentFrame.Name = self.Name .. "_Content"
     self.ContentFrame.Size = UDim2.new(1, 0, 0, 0)
@@ -70,10 +77,16 @@ function Tab.new(window, options)
     contentPadding.PaddingRight = UDim.new(0, 8)
     contentPadding.Parent = self.ContentFrame
 
+    ----------------------------------------------------------------
+    -- REGISTER
+    ----------------------------------------------------------------
+
     table.insert(self.Window.Tabs, self)
 
     self.TabBtn.MouseButton1Click:Connect(function()
-        self:Select()
+        if not self.Destroyed then
+            self:Select()
+        end
     end)
 
     if #self.Window.Tabs == 1 then
@@ -83,14 +96,25 @@ function Tab.new(window, options)
     return self
 end
 
+----------------------------------------------------------------
+-- BUTTON
+----------------------------------------------------------------
+
 function Tab:Button(options)
     if not self.Window.ButtonModule then
         warn("ButtonModule chưa được load!")
         return nil
     end
 
-    return self.Window.ButtonModule.new(self, options)
+    return self.Window.ButtonModule.new(
+        self,
+        options or {}
+    )
 end
+
+----------------------------------------------------------------
+-- TOGGLE
+----------------------------------------------------------------
 
 function Tab:Toggle(options)
     if not self.Window.ToggleModule then
@@ -98,53 +122,145 @@ function Tab:Toggle(options)
         return nil
     end
 
-    return self.Window.ToggleModule.new(self, options)
+    return self.Window.ToggleModule.new(
+        self,
+        options or {}
+    )
 end
 
+----------------------------------------------------------------
+-- SELECT
+----------------------------------------------------------------
+
 function Tab:Select()
+    if self.Destroyed then
+        return
+    end
+
     for _, tab in ipairs(self.Window.Tabs) do
         if tab.ContentFrame and tab.TabBtn then
             tab.ContentFrame.Visible = false
-            tab.TabBtn.BackgroundColor3 = self.Window.ThemeData.Background
-            tab.TabBtn.TextColor3 = self.Window.ThemeData.Text
+            tab.TabBtn.BackgroundColor3 =
+                self.Window.ThemeData.Background
+            tab.TabBtn.TextColor3 =
+                self.Window.ThemeData.Text
         end
     end
 
     self.ContentFrame.Visible = true
-    self.TabBtn.BackgroundColor3 = self.Window.ThemeData.Accent
-    self.TabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+    self.TabBtn.BackgroundColor3 =
+        self.Window.ThemeData.Accent
+
+    self.TabBtn.TextColor3 =
+        Color3.fromRGB(255, 255, 255)
 end
 
-function Tab:UpdateTheme(theme)
-    if self.ContentFrame.Visible then
-        self.TabBtn.BackgroundColor3 = theme.Accent
-        self.TabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    else
-        self.TabBtn.BackgroundColor3 = theme.Background
-        self.TabBtn.TextColor3 = theme.Text
+----------------------------------------------------------------
+-- FONT
+----------------------------------------------------------------
+
+function Tab:SetFont(fontType)
+    if self.Destroyed then
+        return
     end
 
-    self.TabBtn.BorderColor3 = theme.Border
-    self.TabBtn.Font = self.Window.CurrentFont
+    if typeof(fontType) == "string"
+        and string.find(
+            string.lower(fontType),
+            "rbxassetid",
+            1,
+            true
+        ) then
 
-    for _, element in ipairs(self.Elements) do
-        if element and element.UpdateTheme then
-            element:UpdateTheme(theme)
+        local ok, customFont = pcall(function()
+            return Font.new(fontType)
+        end)
+
+        if ok and customFont then
+            self.TabBtn.FontFace = customFont
+
+            for _, element in ipairs(self.Elements) do
+                if element and element.SetFont then
+                    element:SetFont(fontType)
+                end
+            end
+        end
+
+        return
+    end
+
+    if typeof(fontType) == "EnumItem"
+        and fontType.EnumType == Enum.Font then
+
+        self.TabBtn.Font = fontType
+
+        for _, element in ipairs(self.Elements) do
+            if element and element.SetFont then
+                element:SetFont(fontType)
+            end
         end
     end
 end
 
+----------------------------------------------------------------
+-- THEME
+----------------------------------------------------------------
+
+function Tab:UpdateTheme(theme)
+    if self.Destroyed then
+        return
+    end
+
+    if self.ContentFrame.Visible then
+        self.TabBtn.BackgroundColor3 = theme.Accent
+        self.TabBtn.TextColor3 =
+            Color3.fromRGB(255, 255, 255)
+    else
+        self.TabBtn.BackgroundColor3 =
+            theme.Background
+
+        self.TabBtn.TextColor3 =
+            theme.Text
+    end
+
+    self.TabBtn.BorderColor3 =
+        theme.Border
+
+    self:SetFont(self.Window.CurrentFont)
+
+    for _, element in ipairs(self.Elements) do
+        if element and element.UpdateTheme then
+            local ok, err = pcall(function()
+                element:UpdateTheme(theme)
+            end)
+
+            if not ok then
+                warn("Element theme update failed:", err)
+            end
+        end
+    end
+end
+
+----------------------------------------------------------------
+-- TITLE
+----------------------------------------------------------------
+
 function Tab:SetTitle(newTitle)
+    if self.Destroyed then
+        return
+    end
+
     self.Name = tostring(newTitle)
 
-    if self.TabBtn then
-        self.TabBtn.Name = self.Name .. "_TabBtn"
-        self.TabBtn.Text = self.Name
-    end
+    self.TabBtn.Name =
+        self.Name .. "_TabBtn"
 
-    if self.ContentFrame then
-        self.ContentFrame.Name = self.Name .. "_Content"
-    end
+    self.TabBtn.Text =
+        self.Name
+
+    self.ContentFrame.Name =
+        self.Name .. "_Content"
 end
 
 return Tab
