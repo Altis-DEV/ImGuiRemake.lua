@@ -176,6 +176,17 @@ function Tab:Paragraph(options)
     )
 end
 
+function Tab:Label(options)
+    if not self.Window.LabelModule then
+        warn("LabelModule chưa được load!")
+        return nil
+    end
+
+    return self.Window.LabelModule.new(
+        self,
+        options or {}
+    )
+end
 ----------------------------------------------------------------
 -- SELECT
 ----------------------------------------------------------------
