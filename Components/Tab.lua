@@ -152,6 +152,18 @@ function Tab:Dropdown(options)
     )
 end
 
+function Tab:TextBox(options)
+    if not self.Window.TextBoxModule then
+        warn("TextBoxModule chưa được load!")
+        return nil
+    end
+
+    return self.Window.TextBoxModule.new(
+        self,
+        options or {}
+    )
+end
+
 ----------------------------------------------------------------
 -- SELECT
 ----------------------------------------------------------------
