@@ -83,6 +83,8 @@ local DropdownModule =
 local TextBoxModule =
     LoadModule("Components/TextBox.lua")
 
+local ParagraphModule =
+    LoadModule("Components/Paragraph.lua")
 ------------------------------------------------------------
 -- INJECT COMPONENTS
 ------------------------------------------------------------
@@ -104,6 +106,9 @@ WindowModule.DropdownModule =
 
 WindowModule.TextBoxModule =
     TextBoxModule
+
+WindowModule.ParagraphModule =
+    ParagraphModule
 
 ------------------------------------------------------------
 -- CREATE WINDOW
