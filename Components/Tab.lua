@@ -211,6 +211,22 @@ function Tab:ColorPicker(options)
         options
     )
 end
+
+function Tab:Image(options)
+    if not self.Window.ImageModule then
+        warn(
+            "ImageModule chưa được load " ..
+            "(Kiểm tra lại file init.lua)!"
+        )
+
+        return nil
+    end
+
+    return self.Window.ImageModule.new(
+        self,
+        options or {}
+    )
+end
 ----------------------------------------------------------------
 -- SELECT
 ----------------------------------------------------------------
