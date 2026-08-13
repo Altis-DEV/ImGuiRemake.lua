@@ -3,18 +3,46 @@
 local Row = {}
 Row.__index = Row
 
-local PADDING_LEFT = 0
-local PADDING_RIGHT = 0
-local PADDING_TOP = 0
-local PADDING_BOTTOM = 0
+------------------------------------------------------------
+-- CONSTANTS
+------------------------------------------------------------
 
-local ELEMENT_GAP = 5
+local GAP = 5
+
+------------------------------------------------------------
+-- GET ROOT INSTANCE OF ELEMENT
+------------------------------------------------------------
+
+local function getElementInstance(element)
+
+    if not element then
+        return nil
+    end
+
+    -- Button
+    if element.Instance
+        and element.Instance:IsA("GuiObject") then
+
+        return element.Instance
+    end
+
+    -- Toggle / Paragraph / TextBox / Slider / Dropdown /
+    -- Label / Image / Section / Row
+    if element.Container
+        and element.Container:IsA("GuiObject") then
+
+        return element.Container
+    end
+
+    return nil
+end
 
 ------------------------------------------------------------
 -- CONSTRUCTOR
 ------------------------------------------------------------
 
 function Row.new(parent, options)
+
     options = options or {}
 
     local self = setmetatable({}, Row)
@@ -23,15 +51,16 @@ function Row.new(parent, options)
     self.Window = parent.Window
 
     self.Elements = {}
+    self.Cells = {}
+
     self.Destroyed = false
 
     --------------------------------------------------------
-    -- MAIN CONTAINER
-    --
-    -- Row itself = 1 element of Parent
+    -- ROW CONTAINER
     --------------------------------------------------------
 
     self.Container = Instance.new("Frame")
+
     self.Container.Name = "Row"
 
     self.Container.Size =
@@ -52,14 +81,10 @@ function Row.new(parent, options)
         parent.ContentFrame
 
     --------------------------------------------------------
-    -- CONTENT FRAME
-    --
-    -- Existing components use:
-    -- parent.ContentFrame
+    -- CONTENT
     --------------------------------------------------------
 
-    self.ContentFrame =
-        Instance.new("Frame")
+    self.ContentFrame = Instance.new("Frame")
 
     self.ContentFrame.Name =
         "ContentFrame"
@@ -80,43 +105,6 @@ function Row.new(parent, options)
 
     self.ContentFrame.Parent =
         self.Container
-
-    --------------------------------------------------------
-    -- PADDING
-    --------------------------------------------------------
-
-    self.Padding =
-        Instance.new("UIPadding")
-
-    self.Padding.Name =
-        "RowPadding"
-
-    self.Padding.PaddingLeft =
-        UDim.new(
-            0,
-            PADDING_LEFT
-        )
-
-    self.Padding.PaddingRight =
-        UDim.new(
-            0,
-            PADDING_RIGHT
-        )
-
-    self.Padding.PaddingTop =
-        UDim.new(
-            0,
-            PADDING_TOP
-        )
-
-    self.Padding.PaddingBottom =
-        UDim.new(
-            0,
-            PADDING_BOTTOM
-        )
-
-    self.Padding.Parent =
-        self.ContentFrame
 
     --------------------------------------------------------
     -- HORIZONTAL LAYOUT
@@ -143,11 +131,29 @@ function Row.new(parent, options)
     self.Layout.Padding =
         UDim.new(
             0,
-            ELEMENT_GAP
+            GAP
         )
 
     self.Layout.Parent =
         self.ContentFrame
+
+    --------------------------------------------------------
+    -- WATCH HEIGHT
+    --------------------------------------------------------
+
+    self.Layout:GetPropertyChangedSignal(
+        "AbsoluteContentSize"
+    ):Connect(
+        function()
+
+            if self.Destroyed then
+                return
+            end
+
+            self:_RefreshHeight()
+
+        end
+    )
 
     --------------------------------------------------------
     -- REGISTER ROW AS ONE ELEMENT
@@ -162,10 +168,167 @@ function Row.new(parent, options)
 end
 
 ------------------------------------------------------------
--- REFRESH SIZE
+-- CREATE CELL
 ------------------------------------------------------------
 
-function Row:_RefreshSize()
+function Row:_CreateCell()
+
+    local cell =
+        Instance.new("Frame")
+
+    cell.Name =
+        "Cell_" ..
+        tostring(#self.Cells + 1)
+
+    cell.BackgroundTransparency =
+        1
+
+    cell.BorderSizePixel =
+        0
+
+    cell.LayoutOrder =
+        #self.Cells + 1
+
+    cell.Parent =
+        self.ContentFrame
+
+    table.insert(
+        self.Cells,
+        cell
+    )
+
+    return cell
+end
+
+------------------------------------------------------------
+-- UPDATE CELL SIZES
+------------------------------------------------------------
+
+function Row:_RefreshCellSizes()
+
+    local count =
+        #self.Cells
+
+    if count == 0 then
+        return
+    end
+
+    --------------------------------------------------------
+    -- Total width consumed by gaps
+    --------------------------------------------------------
+
+    local totalGap =
+        GAP * math.max(
+            count - 1,
+            0
+        )
+
+    --------------------------------------------------------
+    -- Each cell gets equal width
+    --------------------------------------------------------
+
+    local scale =
+        1 / count
+
+    for _, cell in ipairs(
+        self.Cells
+    ) do
+
+        cell.Size =
+            UDim2.new(
+                scale,
+                -(
+                    totalGap * scale
+                ),
+                0,
+                0
+            )
+
+        cell.AutomaticSize =
+            Enum.AutomaticSize.Y
+    end
+end
+
+------------------------------------------------------------
+-- PREPARE ELEMENT FOR ROW
+------------------------------------------------------------
+
+function Row:_AttachElement(element)
+
+    local instance =
+        getElementInstance(element)
+
+    if not instance then
+        return false
+    end
+
+    --------------------------------------------------------
+    -- CREATE SLOT
+    --------------------------------------------------------
+
+    local cell =
+        self:_CreateCell()
+
+    --------------------------------------------------------
+    -- MOVE ELEMENT INTO CELL
+    --------------------------------------------------------
+
+    instance.Parent =
+        cell
+
+    --------------------------------------------------------
+    -- IMPORTANT:
+    --
+    -- Row controls horizontal size.
+    -- Element controls its own vertical size.
+    --------------------------------------------------------
+
+    instance.Position =
+        UDim2.new(
+            0,
+            0,
+            0,
+            0
+        )
+
+    instance.Size =
+        UDim2.new(
+            1,
+            0,
+            instance.Size.Y.Scale,
+            instance.Size.Y.Offset
+        )
+
+    --------------------------------------------------------
+    -- Disable horizontal AutomaticSize
+    -- because Cell now controls width.
+    --------------------------------------------------------
+
+    if instance:IsA("GuiObject") then
+
+        if instance.AutomaticSize ==
+            Enum.AutomaticSize.X
+            or instance.AutomaticSize ==
+            Enum.AutomaticSize.XY then
+
+            instance.AutomaticSize =
+                Enum.AutomaticSize.Y
+
+        end
+
+    end
+
+    self:_RefreshCellSizes()
+
+    return true
+end
+
+------------------------------------------------------------
+-- REFRESH HEIGHT
+------------------------------------------------------------
+
+function Row:_RefreshHeight()
+
     if self.Destroyed then
         return
     end
@@ -183,7 +346,31 @@ function Row:_RefreshSize()
 end
 
 ------------------------------------------------------------
--- CHILD CREATION
+-- GENERIC ADD
+------------------------------------------------------------
+
+function Row:_AddElement(element)
+
+    if not element then
+        return nil
+    end
+
+    table.insert(
+        self.Elements,
+        element
+    )
+
+    self:_AttachElement(
+        element
+    )
+
+    self:_RefreshHeight()
+
+    return element
+end
+
+------------------------------------------------------------
+-- BUTTON
 ------------------------------------------------------------
 
 function Row:Button(options)
@@ -192,6 +379,7 @@ function Row:Button(options)
         warn(
             "ButtonModule chưa được load!"
         )
+
         return nil
     end
 
@@ -201,10 +389,16 @@ function Row:Button(options)
             options or {}
         )
 
-    self:_RefreshSize()
+    self:_AddElement(
+        element
+    )
 
     return element
 end
+
+------------------------------------------------------------
+-- TOGGLE
+------------------------------------------------------------
 
 function Row:Toggle(options)
 
@@ -212,6 +406,7 @@ function Row:Toggle(options)
         warn(
             "ToggleModule chưa được load!"
         )
+
         return nil
     end
 
@@ -221,10 +416,16 @@ function Row:Toggle(options)
             options or {}
         )
 
-    self:_RefreshSize()
+    self:_AddElement(
+        element
+    )
 
     return element
 end
+
+------------------------------------------------------------
+-- SLIDER
+------------------------------------------------------------
 
 function Row:Slider(options)
 
@@ -232,6 +433,7 @@ function Row:Slider(options)
         warn(
             "SliderModule chưa được load!"
         )
+
         return nil
     end
 
@@ -241,10 +443,16 @@ function Row:Slider(options)
             options or {}
         )
 
-    self:_RefreshSize()
+    self:_AddElement(
+        element
+    )
 
     return element
 end
+
+------------------------------------------------------------
+-- DROPDOWN
+------------------------------------------------------------
 
 function Row:Dropdown(options)
 
@@ -252,6 +460,7 @@ function Row:Dropdown(options)
         warn(
             "DropdownModule chưa được load!"
         )
+
         return nil
     end
 
@@ -261,10 +470,16 @@ function Row:Dropdown(options)
             options or {}
         )
 
-    self:_RefreshSize()
+    self:_AddElement(
+        element
+    )
 
     return element
 end
+
+------------------------------------------------------------
+-- TEXTBOX
+------------------------------------------------------------
 
 function Row:TextBox(options)
 
@@ -272,6 +487,7 @@ function Row:TextBox(options)
         warn(
             "TextBoxModule chưa được load!"
         )
+
         return nil
     end
 
@@ -281,10 +497,16 @@ function Row:TextBox(options)
             options or {}
         )
 
-    self:_RefreshSize()
+    self:_AddElement(
+        element
+    )
 
     return element
 end
+
+------------------------------------------------------------
+-- PARAGRAPH
+------------------------------------------------------------
 
 function Row:Paragraph(options)
 
@@ -292,6 +514,7 @@ function Row:Paragraph(options)
         warn(
             "ParagraphModule chưa được load!"
         )
+
         return nil
     end
 
@@ -301,10 +524,16 @@ function Row:Paragraph(options)
             options or {}
         )
 
-    self:_RefreshSize()
+    self:_AddElement(
+        element
+    )
 
     return element
 end
+
+------------------------------------------------------------
+-- LABEL
+------------------------------------------------------------
 
 function Row:Label(options)
 
@@ -312,6 +541,7 @@ function Row:Label(options)
         warn(
             "LabelModule chưa được load!"
         )
+
         return nil
     end
 
@@ -321,10 +551,16 @@ function Row:Label(options)
             options or {}
         )
 
-    self:_RefreshSize()
+    self:_AddElement(
+        element
+    )
 
     return element
 end
+
+------------------------------------------------------------
+-- DIVIDER
+------------------------------------------------------------
 
 function Row:Divider(options)
 
@@ -332,6 +568,7 @@ function Row:Divider(options)
         warn(
             "DividerModule chưa được load!"
         )
+
         return nil
     end
 
@@ -341,10 +578,16 @@ function Row:Divider(options)
             options or {}
         )
 
-    self:_RefreshSize()
+    self:_AddElement(
+        element
+    )
 
     return element
 end
+
+------------------------------------------------------------
+-- IMAGE
+------------------------------------------------------------
 
 function Row:Image(options)
 
@@ -352,6 +595,7 @@ function Row:Image(options)
         warn(
             "ImageModule chưa được load!"
         )
+
         return nil
     end
 
@@ -361,7 +605,9 @@ function Row:Image(options)
             options or {}
         )
 
-    self:_RefreshSize()
+    self:_AddElement(
+        element
+    )
 
     return element
 end
@@ -376,18 +622,67 @@ function Row:Row(options)
         warn(
             "RowModule chưa được load!"
         )
+
         return nil
     end
 
-    local row =
+    local element =
         self.Window.RowModule.new(
             self,
             options or {}
         )
 
-    self:_RefreshSize()
+    self:_AddElement(
+        element
+    )
 
-    return row
+    return element
+end
+
+------------------------------------------------------------
+-- UPDATE THEME
+------------------------------------------------------------
+
+function Row:UpdateTheme(theme)
+
+    if self.Destroyed then
+        return
+    end
+
+    for _, element in ipairs(
+        self.Elements
+    ) do
+
+        if element.UpdateTheme then
+            element:UpdateTheme(
+                theme
+            )
+        end
+
+    end
+end
+
+------------------------------------------------------------
+-- SET FONT
+------------------------------------------------------------
+
+function Row:SetFont(fontType)
+
+    if self.Destroyed then
+        return
+    end
+
+    for _, element in ipairs(
+        self.Elements
+    ) do
+
+        if element.SetFont then
+            element:SetFont(
+                fontType
+            )
+        end
+
+    end
 end
 
 ------------------------------------------------------------
@@ -403,7 +698,7 @@ function Row:Destroy()
     self.Destroyed = true
 
     --------------------------------------------------------
-    -- DESTROY CHILD ELEMENTS
+    -- Destroy children
     --------------------------------------------------------
 
     for i = #self.Elements, 1, -1 do
@@ -423,17 +718,25 @@ function Row:Destroy()
         self.Elements
     )
 
+    table.clear(
+        self.Cells
+    )
+
     --------------------------------------------------------
-    -- DESTROY INSTANCE
+    -- Destroy container
     --------------------------------------------------------
 
     if self.Container then
+
         self.Container:Destroy()
-        self.Container = nil
+
+        self.Container =
+            nil
+
     end
 
     --------------------------------------------------------
-    -- REMOVE FROM PARENT
+    -- Remove from parent
     --------------------------------------------------------
 
     for i, element in ipairs(
@@ -448,47 +751,6 @@ function Row:Destroy()
             )
 
             break
-        end
-    end
-end
-
-------------------------------------------------------------
--- UPDATE THEME
-------------------------------------------------------------
-
-function Row:UpdateTheme(theme)
-
-    if self.Destroyed then
-        return
-    end
-
-    for _, element in ipairs(
-        self.Elements
-    ) do
-
-        if element.UpdateTheme then
-            element:UpdateTheme(theme)
-        end
-
-    end
-end
-
-------------------------------------------------------------
--- UPDATE FONT
-------------------------------------------------------------
-
-function Row:SetFont(fontType)
-
-    if self.Destroyed then
-        return
-    end
-
-    for _, element in ipairs(
-        self.Elements
-    ) do
-
-        if element.SetFont then
-            element:SetFont(fontType)
         end
 
     end
