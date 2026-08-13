@@ -531,6 +531,33 @@ function Tab:Row(options)
     )
 end
 
+
+----------------------------------------------------------------
+-- MODAL
+----------------------------------------------------------------
+
+
+function Tab:Modal(options)
+
+    if self.Destroyed then
+        return nil
+    end
+
+    if not self.Window.ModalModule then
+        warn(
+            "ModalModule chưa được load " ..
+            "(Kiểm tra lại file init.lua)!"
+        )
+
+        return nil
+    end
+
+    return self.Window.ModalModule.new(
+        self,
+        options or {}
+    )
+end
+
 ----------------------------------------------------------------
 -- SELECT
 ----------------------------------------------------------------
