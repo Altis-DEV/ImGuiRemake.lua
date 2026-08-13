@@ -3,12 +3,19 @@
 local Section = {}
 Section.__index = Section
 
+local TweenService = game:GetService("TweenService")
+
 ------------------------------------------------------------
 -- CONSTANTS
 ------------------------------------------------------------
 
 local HEADER_HEIGHT = 30
+
+-- Element trong Section thụt vào 10px
 local INDENT = 10
+
+-- Animation
+local ANIMATION_TIME = 0.22
 
 local CLOSED_ROTATION = -90
 local OPEN_ROTATION = 0
@@ -26,7 +33,7 @@ function Section.new(parent, options)
     --------------------------------------------------------
     -- PARENT
     --
-    -- parent can be:
+    -- parent:
     --   Tab
     --   Section
     --------------------------------------------------------
@@ -34,10 +41,9 @@ function Section.new(parent, options)
     self.Parent = parent
     self.Window = parent.Window
 
-    self.Title =
-        tostring(
-            options.Title or "Section"
-        )
+    self.Title = tostring(
+        options.Title or "Section"
+    )
 
     self.Opened =
         options.Open ~= false
@@ -47,11 +53,10 @@ function Section.new(parent, options)
     self.Elements = {}
 
     --------------------------------------------------------
-    -- CONTAINER
+    -- SECTION ITSELF = 1 ELEMENT OF PARENT
     --------------------------------------------------------
 
-    self.Container =
-        Instance.new("Frame")
+    self.Container = Instance.new("Frame")
 
     self.Container.Name =
         self.Title .. "_Section"
@@ -61,7 +66,7 @@ function Section.new(parent, options)
             1,
             0,
             0,
-            HEADER_HEIGHT
+            0
         )
 
     self.Container.AutomaticSize =
@@ -77,18 +82,39 @@ function Section.new(parent, options)
         parent.ContentFrame
 
     --------------------------------------------------------
-    -- HEADER
+    -- INTERNAL LAYOUT
     --
-    -- Giống TitleFrame của Paragraph
+    -- TitleFrame
+    -- ElementContainer
     --------------------------------------------------------
 
-    self.Header =
-        Instance.new("Frame")
+    self.Layout = Instance.new("UIListLayout")
 
-    self.Header.Name =
+    self.Layout.Name =
+        "SectionLayout"
+
+    self.Layout.FillDirection =
+        Enum.FillDirection.Vertical
+
+    self.Layout.SortOrder =
+        Enum.SortOrder.LayoutOrder
+
+    self.Layout.Padding =
+        UDim.new(0, -1)
+
+    self.Layout.Parent =
+        self.Container
+
+    --------------------------------------------------------
+    -- TITLE FRAME
+    --------------------------------------------------------
+
+    self.TitleFrame = Instance.new("Frame")
+
+    self.TitleFrame.Name =
         "TitleFrame"
 
-    self.Header.Size =
+    self.TitleFrame.Size =
         UDim2.new(
             1,
             0,
@@ -96,25 +122,27 @@ function Section.new(parent, options)
             HEADER_HEIGHT
         )
 
-    self.Header.BackgroundColor3 =
-        self.Window.ThemeData.ParagraphTitleFrame
+    self.TitleFrame.BackgroundColor3 =
+        self.Window.ThemeData.SectionTitleFrame
         or self.Window.ThemeData.Background
 
-    self.Header.BorderColor3 =
+    self.TitleFrame.BorderColor3 =
         self.Window.ThemeData.Border
 
-    self.Header.BorderSizePixel =
+    self.TitleFrame.BorderSizePixel =
         1
 
-    self.Header.Parent =
+    self.TitleFrame.LayoutOrder =
+        1
+
+    self.TitleFrame.Parent =
         self.Container
 
     --------------------------------------------------------
-    -- ARROW BUTTON
+    -- TOGGLE BUTTON
     --------------------------------------------------------
 
-    self.ToggleButton =
-        Instance.new("TextButton")
+    self.ToggleButton = Instance.new("TextButton")
 
     self.ToggleButton.Name =
         "ToggleButton"
@@ -141,9 +169,9 @@ function Section.new(parent, options)
     self.ToggleButton.BorderSizePixel =
         0
 
-    -- Luôn dùng ▼.
-    -- Đóng = xoay -90° thành ▶
-    -- Mở   = 0° thành ▼
+    -- Không đổi text.
+    -- Đóng: ▼ xoay -90 = ▶
+    -- Mở:  ▼ xoay 0  = ▼
     self.ToggleButton.Text =
         "▼"
 
@@ -165,14 +193,13 @@ function Section.new(parent, options)
         false
 
     self.ToggleButton.Parent =
-        self.Header
+        self.TitleFrame
 
     --------------------------------------------------------
-    -- TITLE
+    -- TITLE LABEL
     --------------------------------------------------------
 
-    self.TitleLabel =
-        Instance.new("TextLabel")
+    self.TitleLabel = Instance.new("TextLabel")
 
     self.TitleLabel.Name =
         "Title"
@@ -196,7 +223,7 @@ function Section.new(parent, options)
     self.TitleLabel.BackgroundTransparency =
         1
 
-    -- Section KHÔNG dùng RichText
+    -- Section không dùng RichText
     self.TitleLabel.RichText =
         false
 
@@ -219,19 +246,20 @@ function Section.new(parent, options)
         Enum.TextYAlignment.Center
 
     self.TitleLabel.Parent =
-        self.Header
+        self.TitleFrame
 
     --------------------------------------------------------
-    -- CONTENT
+    -- ELEMENT CONTAINER
+    --
+    -- Đây là nơi chứa element của Section.
     --------------------------------------------------------
 
-    self.ContentFrame =
-        Instance.new("Frame")
+    self.ElementContainer = Instance.new("Frame")
 
-    self.ContentFrame.Name =
-        "Content"
+    self.ElementContainer.Name =
+        "ElementContainer"
 
-    self.ContentFrame.Size =
+    self.ElementContainer.Size =
         UDim2.new(
             1,
             -INDENT,
@@ -239,7 +267,10 @@ function Section.new(parent, options)
             0
         )
 
-    self.ContentFrame.Position =
+    self.ElementContainer.AutomaticSize =
+        Enum.AutomaticSize.Y
+
+    self.ElementContainer.Position =
         UDim2.new(
             0,
             INDENT,
@@ -247,42 +278,68 @@ function Section.new(parent, options)
             0
         )
 
-    self.ContentFrame.AutomaticSize =
-        Enum.AutomaticSize.Y
+    self.ElementContainer.BackgroundColor3 =
+        self.Window.ThemeData.SectionElementContainer
+        or self.Window.ThemeData.ElementContainer
 
-    self.ContentFrame.BackgroundTransparency =
+    self.ElementContainer.BorderColor3 =
+        self.Window.ThemeData.Border
+
+    self.ElementContainer.BorderSizePixel =
         1
 
-    self.ContentFrame.BorderSizePixel =
-        0
+    self.ElementContainer.LayoutOrder =
+        2
 
-    self.ContentFrame.Visible =
-        self.Opened
+    self.ElementContainer.ClipsDescendants =
+        true
 
-    self.ContentFrame.Parent =
+    self.ElementContainer.Parent =
         self.Container
 
     --------------------------------------------------------
-    -- CONTENT LAYOUT
+    -- ELEMENT LAYOUT
     --------------------------------------------------------
 
-    self.Layout =
-        Instance.new("UIListLayout")
+    self.ElementLayout = Instance.new("UIListLayout")
 
-    self.Layout.Name =
-        "SectionLayout"
+    self.ElementLayout.Name =
+        "ElementLayout"
 
-    self.Layout.FillDirection =
+    self.ElementLayout.FillDirection =
         Enum.FillDirection.Vertical
 
-    self.Layout.SortOrder =
+    self.ElementLayout.SortOrder =
         Enum.SortOrder.LayoutOrder
 
-    self.Layout.Padding =
+    self.ElementLayout.Padding =
         UDim.new(0, 5)
 
-    self.Layout.Parent =
-        self.ContentFrame
+    self.ElementLayout.Parent =
+        self.ElementContainer
+
+    --------------------------------------------------------
+    -- INITIAL OPEN STATE
+    --------------------------------------------------------
+
+    if self.Opened then
+
+        self.ElementContainer.Visible =
+            true
+
+    else
+
+        self.ElementContainer.Visible =
+            false
+
+        self.ElementContainer.Size =
+            UDim2.new(
+                1,
+                -INDENT,
+                0,
+                0
+            )
+    end
 
     --------------------------------------------------------
     -- TOGGLE
@@ -295,15 +352,17 @@ function Section.new(parent, options)
                 return
             end
 
-            self:SetOpen(
-                not self.Opened
-            )
+            if self.Opened then
+                self:Close()
+            else
+                self:Open()
+            end
 
         end
     )
 
     --------------------------------------------------------
-    -- REGISTER IN PARENT
+    -- REGISTER AS ONE ELEMENT
     --------------------------------------------------------
 
     table.insert(
@@ -315,55 +374,202 @@ function Section.new(parent, options)
 end
 
 ------------------------------------------------------------
--- OPEN / CLOSE
+-- GET CONTENT HEIGHT
 ------------------------------------------------------------
 
-function Section:SetOpen(state)
+function Section:_GetElementHeight()
+
+    if self.Destroyed then
+        return 0
+    end
+
+    local absoluteHeight =
+        self.ElementLayout.AbsoluteContentSize.Y
+
+    return absoluteHeight + 10
+end
+
+------------------------------------------------------------
+-- OPEN
+------------------------------------------------------------
+
+function Section:Open()
 
     if self.Destroyed then
         return
     end
 
-    state =
-        state == true
+    if self.Opened then
+        return
+    end
 
-    self.Opened =
-        state
+    self.Opened = true
+
+    --------------------------------------------------------
+    -- SHOW CONTAINER
+    --------------------------------------------------------
+
+    self.ElementContainer.Visible =
+        true
+
+    --------------------------------------------------------
+    -- INITIAL SIZE
+    --------------------------------------------------------
+
+    self.ElementContainer.Size =
+        UDim2.new(
+            1,
+            -INDENT,
+            0,
+            0
+        )
 
     --------------------------------------------------------
     -- ARROW
     --------------------------------------------------------
-
-    local rotation =
-        state
-        and OPEN_ROTATION
-        or CLOSED_ROTATION
-
-    local TweenService =
-        game:GetService("TweenService")
 
     TweenService:Create(
 
         self.ToggleButton,
 
         TweenInfo.new(
-            0.2,
+            ANIMATION_TIME,
             Enum.EasingStyle.Quad,
             Enum.EasingDirection.Out
         ),
 
         {
-            Rotation = rotation
+            Rotation =
+                OPEN_ROTATION
         }
 
     ):Play()
 
     --------------------------------------------------------
-    -- CONTENT
+    -- EXPAND
     --------------------------------------------------------
 
-    self.ContentFrame.Visible =
-        state
+    local targetHeight =
+        self:_GetElementHeight()
+
+    TweenService:Create(
+
+        self.ElementContainer,
+
+        TweenInfo.new(
+            ANIMATION_TIME,
+            Enum.EasingStyle.Quad,
+            Enum.EasingDirection.Out
+        ),
+
+        {
+            Size =
+                UDim2.new(
+                    1,
+                    -INDENT,
+                    0,
+                    targetHeight
+                )
+        }
+
+    ):Play()
+end
+
+------------------------------------------------------------
+-- CLOSE
+------------------------------------------------------------
+
+function Section:Close()
+
+    if self.Destroyed then
+        return
+    end
+
+    if not self.Opened then
+        return
+    end
+
+    self.Opened = false
+
+    --------------------------------------------------------
+    -- ARROW
+    --------------------------------------------------------
+
+    TweenService:Create(
+
+        self.ToggleButton,
+
+        TweenInfo.new(
+            ANIMATION_TIME,
+            Enum.EasingStyle.Quad,
+            Enum.EasingDirection.Out
+        ),
+
+        {
+            Rotation =
+                CLOSED_ROTATION
+        }
+
+    ):Play()
+
+    --------------------------------------------------------
+    -- COLLAPSE
+    --------------------------------------------------------
+
+    local tween =
+        TweenService:Create(
+
+            self.ElementContainer,
+
+            TweenInfo.new(
+                ANIMATION_TIME,
+                Enum.EasingStyle.Quad,
+                Enum.EasingDirection.Out
+            ),
+
+            {
+                Size =
+                    UDim2.new(
+                        1,
+                        -INDENT,
+                        0,
+                        0
+                    )
+            }
+        )
+
+    tween:Play()
+
+    tween.Completed:Connect(
+        function()
+
+            if self.Destroyed then
+                return
+            end
+
+            if not self.Opened then
+
+                self.ElementContainer.Visible =
+                    false
+
+            end
+
+        end
+    )
+end
+
+------------------------------------------------------------
+-- SET OPEN
+------------------------------------------------------------
+
+function Section:SetOpen(state)
+
+    if state then
+        self:Open()
+    else
+        self:Close()
+    end
+
 end
 
 ------------------------------------------------------------
@@ -396,19 +602,8 @@ function Section:SetFont(fontType)
         return
     end
 
-    --------------------------------------------------------
-    -- HEADER
-    --------------------------------------------------------
-
-    self.ToggleButton.TextSize =
-        14
-
-    self.TitleLabel.TextSize =
-        13
-
     if typeof(fontType) == "EnumItem"
-        and fontType.EnumType ==
-            Enum.Font then
+        and fontType.EnumType == Enum.Font then
 
         self.ToggleButton.Font =
             fontType
@@ -425,9 +620,11 @@ function Section:SetFont(fontType)
         ) then
 
         local ok, customFont =
-            pcall(function()
-                return Font.new(fontType)
-            end)
+            pcall(
+                function()
+                    return Font.new(fontType)
+                end
+            )
 
         if ok and customFont then
 
@@ -452,18 +649,29 @@ function Section:UpdateTheme(theme)
     end
 
     --------------------------------------------------------
-    -- HEADER
+    -- TITLE FRAME
     --------------------------------------------------------
 
-    self.Header.BackgroundColor3 =
-        theme.ParagraphTitleFrame
+    self.TitleFrame.BackgroundColor3 =
+        theme.SectionTitleFrame
         or theme.Background
 
-    self.Header.BorderColor3 =
+    self.TitleFrame.BorderColor3 =
         theme.Border
 
     --------------------------------------------------------
-    -- TEXT
+    -- ELEMENT CONTAINER
+    --------------------------------------------------------
+
+    self.ElementContainer.BackgroundColor3 =
+        theme.SectionElementContainer
+        or theme.ElementContainer
+
+    self.ElementContainer.BorderColor3 =
+        theme.Border
+
+    --------------------------------------------------------
+    -- TITLE
     --------------------------------------------------------
 
     self.TitleLabel.TextColor3 =
@@ -481,7 +689,7 @@ function Section:UpdateTheme(theme)
     )
 
     --------------------------------------------------------
-    -- CHILDREN
+    -- CHILD ELEMENTS
     --------------------------------------------------------
 
     for _, element in ipairs(
@@ -505,8 +713,7 @@ function Section:Destroy()
         return
     end
 
-    self.Destroyed =
-        true
+    self.Destroyed = true
 
     --------------------------------------------------------
     -- DESTROY CHILDREN
@@ -564,19 +771,13 @@ function Section:Destroy()
 end
 
 ------------------------------------------------------------
--- CHILD ELEMENT HELPERS
---
--- Section có thể sử dụng cùng API
--- với Tab.
+-- CHILD ELEMENT FACTORIES
 ------------------------------------------------------------
 
 function Section:Button(options)
 
     if not self.Window.ButtonModule then
-        warn(
-            "ButtonModule chưa được load!"
-        )
-
+        warn("ButtonModule chưa được load!")
         return nil
     end
 
@@ -589,10 +790,7 @@ end
 function Section:Toggle(options)
 
     if not self.Window.ToggleModule then
-        warn(
-            "ToggleModule chưa được load!"
-        )
-
+        warn("ToggleModule chưa được load!")
         return nil
     end
 
@@ -605,10 +803,7 @@ end
 function Section:Slider(options)
 
     if not self.Window.SliderModule then
-        warn(
-            "SliderModule chưa được load!"
-        )
-
+        warn("SliderModule chưa được load!")
         return nil
     end
 
@@ -621,10 +816,7 @@ end
 function Section:Dropdown(options)
 
     if not self.Window.DropdownModule then
-        warn(
-            "DropdownModule chưa được load!"
-        )
-
+        warn("DropdownModule chưa được load!")
         return nil
     end
 
@@ -637,10 +829,7 @@ end
 function Section:TextBox(options)
 
     if not self.Window.TextBoxModule then
-        warn(
-            "TextBoxModule chưa được load!"
-        )
-
+        warn("TextBoxModule chưa được load!")
         return nil
     end
 
@@ -653,10 +842,7 @@ end
 function Section:Paragraph(options)
 
     if not self.Window.ParagraphModule then
-        warn(
-            "ParagraphModule chưa được load!"
-        )
-
+        warn("ParagraphModule chưa được load!")
         return nil
     end
 
@@ -669,10 +855,7 @@ end
 function Section:Label(options)
 
     if not self.Window.LabelModule then
-        warn(
-            "LabelModule chưa được load!"
-        )
-
+        warn("LabelModule chưa được load!")
         return nil
     end
 
@@ -685,10 +868,7 @@ end
 function Section:Divider(options)
 
     if not self.Window.DividerModule then
-        warn(
-            "DividerModule chưa được load!"
-        )
-
+        warn("DividerModule chưa được load!")
         return nil
     end
 
@@ -701,10 +881,7 @@ end
 function Section:Image(options)
 
     if not self.Window.ImageModule then
-        warn(
-            "ImageModule chưa được load!"
-        )
-
+        warn("ImageModule chưa được load!")
         return nil
     end
 
