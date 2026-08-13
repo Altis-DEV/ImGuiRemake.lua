@@ -215,22 +215,6 @@ function Tab:Image(options)
         options or {}
     )
 end
-
-function Tab:ColorPreview(options)
-    if not self.Window.ColorPreviewModule then
-        warn(
-            "ColorPreviewModule chưa được load " ..
-            "(Kiểm tra lại file init.lua)!"
-        )
-
-        return nil
-    end
-
-    return self.Window.ColorPreviewModule.new(
-        self,
-        options or {}
-    )
-end
 ----------------------------------------------------------------
 -- SELECT
 ----------------------------------------------------------------
