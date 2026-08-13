@@ -115,9 +115,6 @@ local LabelModule =
 local DividerModule =
     LoadModule("Components/Divider.lua")
 
-local ColorPickerPreview =
-    LoadModule("Components/ColorPicker.lua")
-
 local ImageModule =
     LoadModule("Components/Image.lua")
 
@@ -155,9 +152,6 @@ WindowModule.LabelModule =
 
 WindowModule.DividerModule =
     DividerModule
-
-WindowModule.ColorPreviewModule =
-    ColorPreviewModule
 
 WindowModule.ImageModule =
     ImageModule
