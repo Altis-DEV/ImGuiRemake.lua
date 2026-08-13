@@ -5,6 +5,9 @@ Button.__index = Button
 
 local TweenService = game:GetService("TweenService")
 
+local DEFAULT_HEIGHT = 30
+local DEFAULT_HORIZONTAL_PADDING = 15
+
 function Button.new(tab, options)
     local self = setmetatable({}, Button)
 
@@ -13,7 +16,10 @@ function Button.new(tab, options)
     self.Tab = tab
     self.Window = tab.Window
 
-    self.Title = tostring(options.Title or "Button")
+    self.Title = tostring(
+        options.Title or "Button"
+    )
+
     self.Type = options.Type or "Default"
 
     self.Callback =
@@ -25,13 +31,17 @@ function Button.new(tab, options)
 
     local theme = self.Window.ThemeData
 
-    ----------------------------------------------------------------
+    ------------------------------------------------------------
     -- BUTTON
-    ----------------------------------------------------------------
+    ------------------------------------------------------------
 
     self.Instance = Instance.new("TextButton")
-    self.Instance.Name = "Button_" .. self.Title
-    self.Instance.Text = self.Title
+
+    self.Instance.Name =
+        "Button_" .. self.Title
+
+    self.Instance.Text =
+        self.Title
 
     self.Instance.TextColor3 =
         theme.ButtonText
@@ -49,30 +59,63 @@ function Button.new(tab, options)
     self.Instance.TextSize = 13
     self.Instance.AutoButtonColor = false
 
-    ----------------------------------------------------------------
+    ------------------------------------------------------------
     -- SIZE
-    ----------------------------------------------------------------
+    ------------------------------------------------------------
 
     if self.Type == "Full" then
+
+        -- Full width của parent hiện tại.
+        --
+        -- Quan trọng:
+        -- Section đã có UIPadding bên trong
+        -- ElementContainer, nên không cần -12.
         self.Instance.Size =
-            UDim2.new(1, -12, 0, 30)
+            UDim2.new(
+                1,
+                0,
+                0,
+                DEFAULT_HEIGHT
+            )
+
+        self.Instance.AutomaticSize =
+            Enum.AutomaticSize.None
+
     else
+
         self.Instance.Size =
-            UDim2.new(0, 0, 0, 30)
+            UDim2.new(
+                0,
+                0,
+                0,
+                DEFAULT_HEIGHT
+            )
 
         self.Instance.AutomaticSize =
             Enum.AutomaticSize.X
 
-        local btnPadding = Instance.new("UIPadding")
+        local btnPadding =
+            Instance.new("UIPadding")
 
         btnPadding.PaddingLeft =
-            UDim.new(0, 15)
+            UDim.new(
+                0,
+                DEFAULT_HORIZONTAL_PADDING
+            )
 
         btnPadding.PaddingRight =
-            UDim.new(0, 15)
+            UDim.new(
+                0,
+                DEFAULT_HORIZONTAL_PADDING
+            )
 
-        btnPadding.Parent = self.Instance
+        btnPadding.Parent =
+            self.Instance
     end
+
+    ------------------------------------------------------------
+    -- PARENT
+    ------------------------------------------------------------
 
     self.Instance.Parent =
         self.Tab.ContentFrame
@@ -82,113 +125,150 @@ function Button.new(tab, options)
         self
     )
 
-    ----------------------------------------------------------------
+    ------------------------------------------------------------
     -- INITIAL FONT
-    ----------------------------------------------------------------
+    ------------------------------------------------------------
 
     self:SetFont(
         self.Window.CurrentFont
     )
 
-    ----------------------------------------------------------------
+    ------------------------------------------------------------
     -- HOVER
-    ----------------------------------------------------------------
+    ------------------------------------------------------------
 
-    self.Instance.MouseEnter:Connect(function()
-        if self.Destroyed then
-            return
-        end
+    self.Instance.MouseEnter:Connect(
+        function()
 
-        TweenService:Create(
-            self.Instance,
-            TweenInfo.new(0.2),
-            {
-                BackgroundColor3 =
-                    self.Window.ThemeData.ButtonHighlight
-                    or Color3.fromRGB(60, 110, 220)
-            }
-        ):Play()
-    end)
-
-    ----------------------------------------------------------------
-    -- LEAVE
-    ----------------------------------------------------------------
-
-    self.Instance.MouseLeave:Connect(function()
-        if self.Destroyed then
-            return
-        end
-
-        TweenService:Create(
-            self.Instance,
-            TweenInfo.new(0.2),
-            {
-                BackgroundColor3 =
-                    self.Window.ThemeData.Button
-                    or Color3.fromRGB(40, 90, 175)
-            }
-        ):Play()
-    end)
-
-    ----------------------------------------------------------------
-    -- MOUSE DOWN
-    ----------------------------------------------------------------
-
-    self.Instance.MouseButton1Down:Connect(function()
-        if self.Destroyed then
-            return
-        end
-
-        self.Instance.BackgroundColor3 =
-            self.Window.ThemeData.ButtonHighlight
-            or Color3.fromRGB(60, 110, 220)
-    end)
-
-    ----------------------------------------------------------------
-    -- MOUSE UP
-    ----------------------------------------------------------------
-
-    self.Instance.MouseButton1Up:Connect(function()
-        if self.Destroyed then
-            return
-        end
-
-        self.Instance.BackgroundColor3 =
-            self.Window.ThemeData.Button
-            or Color3.fromRGB(40, 90, 175)
-    end)
-
-    ----------------------------------------------------------------
-    -- CALLBACK
-    ----------------------------------------------------------------
-
-    self.Instance.MouseButton1Click:Connect(function()
-        if self.Destroyed then
-            return
-        end
-
-        task.spawn(function()
-            local ok, err = pcall(
-                self.Callback
-            )
-
-            if not ok then
-                warn(
-                    "Button callback error:",
-                    err
-                )
+            if self.Destroyed then
+                return
             end
-        end)
-    end)
+
+            TweenService:Create(
+                self.Instance,
+                TweenInfo.new(0.2),
+                {
+                    BackgroundColor3 =
+                        self.Window.ThemeData.ButtonHighlight
+                        or Color3.fromRGB(
+                            60,
+                            110,
+                            220
+                        )
+                }
+            ):Play()
+        end
+    )
+
+    ------------------------------------------------------------
+    -- LEAVE
+    ------------------------------------------------------------
+
+    self.Instance.MouseLeave:Connect(
+        function()
+
+            if self.Destroyed then
+                return
+            end
+
+            TweenService:Create(
+                self.Instance,
+                TweenInfo.new(0.2),
+                {
+                    BackgroundColor3 =
+                        self.Window.ThemeData.Button
+                        or Color3.fromRGB(
+                            40,
+                            90,
+                            175
+                        )
+                }
+            ):Play()
+        end
+    )
+
+    ------------------------------------------------------------
+    -- MOUSE DOWN
+    ------------------------------------------------------------
+
+    self.Instance.MouseButton1Down:Connect(
+        function()
+
+            if self.Destroyed then
+                return
+            end
+
+            self.Instance.BackgroundColor3 =
+                self.Window.ThemeData.ButtonHighlight
+                or Color3.fromRGB(
+                    60,
+                    110,
+                    220
+                )
+        end
+    )
+
+    ------------------------------------------------------------
+    -- MOUSE UP
+    ------------------------------------------------------------
+
+    self.Instance.MouseButton1Up:Connect(
+        function()
+
+            if self.Destroyed then
+                return
+            end
+
+            self.Instance.BackgroundColor3 =
+                self.Window.ThemeData.Button
+                or Color3.fromRGB(
+                    40,
+                    90,
+                    175
+                )
+        end
+    )
+
+    ------------------------------------------------------------
+    -- CALLBACK
+    ------------------------------------------------------------
+
+    self.Instance.MouseButton1Click:Connect(
+        function()
+
+            if self.Destroyed then
+                return
+            end
+
+            task.spawn(
+                function()
+
+                    local ok, err =
+                        pcall(
+                            self.Callback
+                        )
+
+                    if not ok then
+                        warn(
+                            "Button callback error:",
+                            err
+                        )
+                    end
+
+                end
+            )
+        end
+    )
 
     return self
 end
 
-----------------------------------------------------------------
+------------------------------------------------------------
 -- SET TITLE
-----------------------------------------------------------------
+------------------------------------------------------------
 
 function Button:SetTitle(newTitle)
+
     if self.Destroyed then
         return
     end
@@ -203,11 +283,12 @@ function Button:SetTitle(newTitle)
         self.Title
 end
 
-----------------------------------------------------------------
+------------------------------------------------------------
 -- SET FONT
-----------------------------------------------------------------
+------------------------------------------------------------
 
 function Button:SetFont(fontType)
+
     if self.Destroyed then
         return
     end
@@ -220,13 +301,18 @@ function Button:SetFont(fontType)
             true
         ) then
 
-        local ok, customFont = pcall(function()
-            return Font.new(fontType)
-        end)
+        local ok, customFont =
+            pcall(
+                function()
+                    return Font.new(fontType)
+                end
+            )
 
         if ok and customFont then
+
             self.Instance.FontFace =
                 customFont
+
         end
 
         return
@@ -240,11 +326,12 @@ function Button:SetFont(fontType)
     end
 end
 
-----------------------------------------------------------------
+------------------------------------------------------------
 -- DESTROY
-----------------------------------------------------------------
+------------------------------------------------------------
 
 function Button:Destroy()
+
     if self.Destroyed then
         return
     end
@@ -252,41 +339,61 @@ function Button:Destroy()
     self.Destroyed = true
 
     if self.Instance then
+
         self.Instance:Destroy()
         self.Instance = nil
+
     end
 
-    for i, element in ipairs(self.Tab.Elements) do
+    for i, element in ipairs(
+        self.Tab.Elements
+    ) do
+
         if element == self then
+
             table.remove(
                 self.Tab.Elements,
                 i
             )
+
             break
         end
     end
 end
 
-----------------------------------------------------------------
+------------------------------------------------------------
 -- UPDATE THEME
-----------------------------------------------------------------
+------------------------------------------------------------
 
 function Button:UpdateTheme(theme)
+
     if self.Destroyed then
         return
     end
 
     self.Instance.TextColor3 =
         theme.ButtonText
-        or Color3.fromRGB(255, 255, 255)
+        or Color3.fromRGB(
+            255,
+            255,
+            255
+        )
 
     self.Instance.BackgroundColor3 =
         theme.Button
-        or Color3.fromRGB(40, 90, 175)
+        or Color3.fromRGB(
+            40,
+            90,
+            175
+        )
 
     self.Instance.BorderColor3 =
         theme.Border
-        or Color3.fromRGB(60, 60, 60)
+        or Color3.fromRGB(
+            60,
+            60,
+            60
+        )
 
     self:SetFont(
         self.Window.CurrentFont
