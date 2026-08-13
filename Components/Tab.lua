@@ -232,6 +232,23 @@ function Tab:Section(options)
         options or {}
     )
 end
+
+function Tab:Row(options)
+
+    if not self.Window.RowModule then
+        warn(
+            "RowModule chưa được load " ..
+            "(Kiểm tra lại file init.lua)!"
+        )
+
+        return nil
+    end
+
+    return self.Window.RowModule.new(
+        self,
+        options or {}
+    )
+end
 ----------------------------------------------------------------
 -- SELECT
 ----------------------------------------------------------------
