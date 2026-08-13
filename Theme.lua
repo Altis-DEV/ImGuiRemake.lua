@@ -33,8 +33,6 @@ Theme.Themes = {
         DropdownOptionHover = Color3.fromRGB(50, 50, 50),
 
         TextBoxFrame = Color3.fromRGB(38, 38, 38),
-
-        -- Placeholder text
         Placeholder = Color3.fromRGB(150, 150, 150),
 
         ParagraphTitleFrame = Color3.fromRGB(32, 32, 32),
@@ -42,14 +40,44 @@ Theme.Themes = {
 
         SectionTitleFrame = Color3.fromRGB(32, 32, 32),
         SectionElementContainer = Color3.fromRGB(25, 25, 25),
+
+        ----------------------------------------------------
+        -- MODAL
+        ----------------------------------------------------
+
+        ModalOverlay =
+            Color3.fromRGB(0, 0, 0),
+
+        ModalOverlayTransparency =
+            0.45,
+
+        ModalFrame =
+            Color3.fromRGB(22, 22, 22),
+
+        ModalTitleFrame =
+            Color3.fromRGB(32, 32, 32),
+
+        ModalTextFrame =
+            Color3.fromRGB(26, 26, 26),
+
+        ModalButtonFrame =
+            Color3.fromRGB(30, 30, 30),
+
+        ModalButton =
+            Color3.fromRGB(40, 90, 175),
+
+        ModalButtonHighlight =
+            Color3.fromRGB(60, 110, 220),
+
+        ModalButtonText =
+            Color3.fromRGB(255, 255, 255),
     }
 }
 
-------------------------------------------------------------
--- CREATE THEME
-------------------------------------------------------------
-
-function Theme:CreateTheme(themeName, colorTable)
+function Theme:CreateTheme(
+    themeName,
+    colorTable
+)
     assert(
         type(themeName) == "string",
         "Theme name must be a string"
@@ -62,19 +90,11 @@ function Theme:CreateTheme(themeName, colorTable)
 
     local newTheme = {}
 
-    --------------------------------------------------------
-    -- COPY DEFAULT
-    --------------------------------------------------------
-
     for key, value in pairs(
         self.Themes.Default
     ) do
         newTheme[key] = value
     end
-
-    --------------------------------------------------------
-    -- OVERRIDE
-    --------------------------------------------------------
 
     for key, value in pairs(
         colorTable
@@ -87,10 +107,6 @@ function Theme:CreateTheme(themeName, colorTable)
 
     return newTheme
 end
-
-------------------------------------------------------------
--- GET THEME
-------------------------------------------------------------
 
 function Theme:GetTheme(themeName)
     return self.Themes[themeName]
