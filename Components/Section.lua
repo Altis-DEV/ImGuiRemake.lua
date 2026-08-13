@@ -25,14 +25,6 @@ function Section.new(parent, options)
 
     local self = setmetatable({}, Section)
 
-    --------------------------------------------------------
-    -- PARENT
-    --
-    -- parent can be:
-    --   Tab
-    --   Section
-    --------------------------------------------------------
-
     self.Parent = parent
     self.Window = parent.Window
 
@@ -40,18 +32,14 @@ function Section.new(parent, options)
         options.Title or "Section"
     )
 
-    self.Opened =
-        options.Open ~= false
+    -- MẶC ĐỊNH = ĐÓNG
+    self.Opened = options.Open == true
 
     self.Destroyed = false
-
-    -- Giống Tab
     self.Elements = {}
 
     --------------------------------------------------------
-    -- SECTION CONTAINER
-    --
-    -- Section itself = 1 element in parent
+    -- SECTION = 1 ELEMENT OF PARENT
     --------------------------------------------------------
 
     self.Container = Instance.new("Frame")
@@ -63,11 +51,8 @@ function Section.new(parent, options)
             1,
             0,
             0,
-            0
+            HEADER_HEIGHT
         )
-
-    self.Container.AutomaticSize =
-        Enum.AutomaticSize.Y
 
     self.Container.BackgroundTransparency = 1
     self.Container.BorderSizePixel = 0
@@ -76,7 +61,7 @@ function Section.new(parent, options)
         parent.ContentFrame
 
     --------------------------------------------------------
-    -- SECTION INTERNAL LAYOUT
+    -- SECTION LAYOUT
     --------------------------------------------------------
 
     self.SectionLayout =
@@ -91,7 +76,7 @@ function Section.new(parent, options)
     self.SectionLayout.SortOrder =
         Enum.SortOrder.LayoutOrder
 
-    -- Hai border chồng lên nhau 1px
+    -- Border của 2 frame chồng nhau 1px
     self.SectionLayout.Padding =
         UDim.new(0, -1)
 
@@ -102,10 +87,12 @@ function Section.new(parent, options)
     -- TITLE FRAME
     --------------------------------------------------------
 
-    self.TitleFrame = Instance.new("Frame")
-    self.TitleFrame.Name = "TitleFrame"
+    self.TitleFrame =
+        Instance.new("Frame")
 
-    -- FULL WIDTH
+    self.TitleFrame.Name =
+        "TitleFrame"
+
     self.TitleFrame.Size =
         UDim2.new(
             1,
@@ -122,8 +109,8 @@ function Section.new(parent, options)
         self.Window.ThemeData.Border
 
     self.TitleFrame.BorderSizePixel = 1
-
     self.TitleFrame.LayoutOrder = 1
+
     self.TitleFrame.Parent =
         self.Container
 
@@ -176,7 +163,7 @@ function Section.new(parent, options)
         self.TitleFrame
 
     --------------------------------------------------------
-    -- TITLE LABEL
+    -- TITLE
     --------------------------------------------------------
 
     self.TitleLabel =
@@ -202,8 +189,6 @@ function Section.new(parent, options)
         )
 
     self.TitleLabel.BackgroundTransparency = 1
-
-    -- Section title KHÔNG RichText
     self.TitleLabel.RichText = false
 
     self.TitleLabel.Text =
@@ -227,9 +212,6 @@ function Section.new(parent, options)
 
     --------------------------------------------------------
     -- ELEMENT CONTAINER
-    --
-    -- QUAN TRỌNG:
-    -- Full width bằng TitleFrame.
     --------------------------------------------------------
 
     self.ElementContainer =
@@ -238,6 +220,7 @@ function Section.new(parent, options)
     self.ElementContainer.Name =
         "ElementContainer"
 
+    -- FULL WIDTH
     self.ElementContainer.Size =
         UDim2.new(
             1,
@@ -246,8 +229,11 @@ function Section.new(parent, options)
             0
         )
 
+    -- QUAN TRỌNG:
+    -- Không dùng AutomaticSize.Y.
+    -- Chiều cao được Section tự tween.
     self.ElementContainer.AutomaticSize =
-        Enum.AutomaticSize.Y
+        Enum.AutomaticSize.None
 
     self.ElementContainer.BackgroundColor3 =
         self.Window.ThemeData.SectionElementContainer
@@ -259,26 +245,20 @@ function Section.new(parent, options)
     self.ElementContainer.BorderSizePixel = 1
 
     self.ElementContainer.ClipsDescendants = true
-
     self.ElementContainer.LayoutOrder = 2
 
     self.ElementContainer.Parent =
         self.Container
 
     --------------------------------------------------------
-    -- CONTENT FRAME ALIAS
-    --
-    -- Các component hiện tại đều dùng:
-    -- tab.ContentFrame
-    --
-    -- Vì vậy Section phải expose ContentFrame.
+    -- COMPONENT COMPATIBILITY
     --------------------------------------------------------
 
     self.ContentFrame =
         self.ElementContainer
 
     --------------------------------------------------------
-    -- ELEMENT LAYOUT
+    -- CHILD ELEMENT LAYOUT
     --------------------------------------------------------
 
     self.ElementLayout =
@@ -300,10 +280,10 @@ function Section.new(parent, options)
         self.ElementContainer
 
     --------------------------------------------------------
-    -- INDENT CONTENT
+    -- INNER PADDING
     --
-    -- ElementContainer vẫn full width,
-    -- nhưng element bên trong thụt vào 10px.
+    -- Container vẫn full width,
+    -- element bên trong thụt 10px.
     --------------------------------------------------------
 
     self.ContentPadding =
@@ -328,15 +308,22 @@ function Section.new(parent, options)
         self.ElementContainer
 
     --------------------------------------------------------
-    -- INITIAL STATE
+    -- INITIAL HEIGHT
     --------------------------------------------------------
 
     if self.Opened then
-
         self.ElementContainer.Visible = true
 
+        -- Frame hiện tại chưa có element?
+        -- Height sẽ được cập nhật ngay sau khi tạo element.
+        self.ElementContainer.Size =
+            UDim2.new(
+                1,
+                0,
+                0,
+                0
+            )
     else
-
         self.ElementContainer.Visible = false
 
         self.ElementContainer.Size =
@@ -349,12 +336,11 @@ function Section.new(parent, options)
     end
 
     --------------------------------------------------------
-    -- TOGGLE
+    -- TOGGLE BUTTON
     --------------------------------------------------------
 
     self.ToggleButton.MouseButton1Click:Connect(
         function()
-
             if self.Destroyed then
                 return
             end
@@ -364,12 +350,11 @@ function Section.new(parent, options)
             else
                 self:Open()
             end
-
         end
     )
 
     --------------------------------------------------------
-    -- REGISTER AS ONE PARENT ELEMENT
+    -- REGISTER
     --------------------------------------------------------
 
     table.insert(
@@ -381,17 +366,61 @@ function Section.new(parent, options)
 end
 
 ------------------------------------------------------------
--- CALCULATE CONTENT HEIGHT
+-- GET CONTENT HEIGHT
 ------------------------------------------------------------
 
-function Section:_GetElementHeight()
-
+function Section:_GetContentHeight()
     if self.Destroyed then
         return 0
     end
 
-    return self.ElementLayout.AbsoluteContentSize.Y
-        + 10
+    -- AbsoluteContentSize đã bao gồm tổng element + spacing.
+    local contentHeight =
+        self.ElementLayout.AbsoluteContentSize.Y
+
+    -- Top + Bottom padding
+    local paddingHeight =
+        10
+
+    return contentHeight + paddingHeight
+end
+
+------------------------------------------------------------
+-- REFRESH HEIGHT
+------------------------------------------------------------
+
+function Section:_RefreshOpenHeight(animated)
+    if self.Destroyed or not self.Opened then
+        return
+    end
+
+    local targetHeight =
+        self:_GetContentHeight()
+
+    local targetSize =
+        UDim2.new(
+            1,
+            0,
+            0,
+            targetHeight
+        )
+
+    if animated then
+        TweenService:Create(
+            self.ElementContainer,
+            TweenInfo.new(
+                ANIMATION_TIME,
+                Enum.EasingStyle.Quad,
+                Enum.EasingDirection.Out
+            ),
+            {
+                Size = targetSize
+            }
+        ):Play()
+    else
+        self.ElementContainer.Size =
+            targetSize
+    end
 end
 
 ------------------------------------------------------------
@@ -399,21 +428,38 @@ end
 ------------------------------------------------------------
 
 function Section:Open()
-
     if self.Destroyed then
         return
     end
 
     if self.Opened then
+        -- Vẫn refresh chiều cao trong trường hợp
+        -- element vừa được thêm sau khi mở.
+        self:_RefreshOpenHeight(true)
         return
     end
 
     self.Opened = true
-
     self.ElementContainer.Visible = true
 
     --------------------------------------------------------
-    -- Start from 0
+    -- ARROW
+    --------------------------------------------------------
+
+    TweenService:Create(
+        self.ToggleButton,
+        TweenInfo.new(
+            ANIMATION_TIME,
+            Enum.EasingStyle.Quad,
+            Enum.EasingDirection.Out
+        ),
+        {
+            Rotation = OPEN_ROTATION
+        }
+    ):Play()
+
+    --------------------------------------------------------
+    -- START FROM ZERO
     --------------------------------------------------------
 
     self.ElementContainer.Size =
@@ -425,51 +471,10 @@ function Section:Open()
         )
 
     --------------------------------------------------------
-    -- Arrow
+    -- EXPAND
     --------------------------------------------------------
 
-    TweenService:Create(
-        self.ToggleButton,
-
-        TweenInfo.new(
-            ANIMATION_TIME,
-            Enum.EasingStyle.Quad,
-            Enum.EasingDirection.Out
-        ),
-
-        {
-            Rotation = OPEN_ROTATION
-        }
-
-    ):Play()
-
-    --------------------------------------------------------
-    -- Expand
-    --------------------------------------------------------
-
-    local height =
-        self:_GetElementHeight()
-
-    TweenService:Create(
-        self.ElementContainer,
-
-        TweenInfo.new(
-            ANIMATION_TIME,
-            Enum.EasingStyle.Quad,
-            Enum.EasingDirection.Out
-        ),
-
-        {
-            Size =
-                UDim2.new(
-                    1,
-                    0,
-                    0,
-                    height
-                )
-        }
-
-    ):Play()
+    self:_RefreshOpenHeight(true)
 end
 
 ------------------------------------------------------------
@@ -477,7 +482,6 @@ end
 ------------------------------------------------------------
 
 function Section:Close()
-
     if self.Destroyed then
         return
     end
@@ -489,38 +493,33 @@ function Section:Close()
     self.Opened = false
 
     --------------------------------------------------------
-    -- Arrow
+    -- ARROW
     --------------------------------------------------------
 
     TweenService:Create(
         self.ToggleButton,
-
         TweenInfo.new(
             ANIMATION_TIME,
             Enum.EasingStyle.Quad,
             Enum.EasingDirection.Out
         ),
-
         {
             Rotation = CLOSED_ROTATION
         }
-
     ):Play()
 
     --------------------------------------------------------
-    -- Collapse
+    -- COLLAPSE
     --------------------------------------------------------
 
     local tween =
         TweenService:Create(
             self.ElementContainer,
-
             TweenInfo.new(
                 ANIMATION_TIME,
                 Enum.EasingStyle.Quad,
                 Enum.EasingDirection.Out
             ),
-
             {
                 Size =
                     UDim2.new(
@@ -536,15 +535,14 @@ function Section:Close()
 
     tween.Completed:Connect(
         function()
-
             if self.Destroyed then
                 return
             end
 
             if not self.Opened then
-                self.ElementContainer.Visible = false
+                self.ElementContainer.Visible =
+                    false
             end
-
         end
     )
 end
@@ -554,13 +552,11 @@ end
 ------------------------------------------------------------
 
 function Section:SetOpen(state)
-
     if state then
         self:Open()
     else
         self:Close()
     end
-
 end
 
 ------------------------------------------------------------
@@ -568,7 +564,6 @@ end
 ------------------------------------------------------------
 
 function Section:SetTitle(newTitle)
-
     if self.Destroyed then
         return
     end
@@ -588,7 +583,6 @@ end
 ------------------------------------------------------------
 
 function Section:SetFont(fontType)
-
     if self.Destroyed then
         return
     end
@@ -618,13 +612,11 @@ function Section:SetFont(fontType)
             )
 
         if ok and customFont then
-
             self.ToggleButton.FontFace =
                 customFont
 
             self.TitleLabel.FontFace =
                 customFont
-
         end
     end
 end
@@ -634,14 +626,9 @@ end
 ------------------------------------------------------------
 
 function Section:UpdateTheme(theme)
-
     if self.Destroyed then
         return
     end
-
-    --------------------------------------------------------
-    -- TITLE FRAME
-    --------------------------------------------------------
 
     self.TitleFrame.BackgroundColor3 =
         theme.SectionTitleFrame
@@ -650,10 +637,6 @@ function Section:UpdateTheme(theme)
     self.TitleFrame.BorderColor3 =
         theme.Border
 
-    --------------------------------------------------------
-    -- ELEMENT CONTAINER
-    --------------------------------------------------------
-
     self.ElementContainer.BackgroundColor3 =
         theme.SectionElementContainer
         or theme.ElementContainer
@@ -661,36 +644,32 @@ function Section:UpdateTheme(theme)
     self.ElementContainer.BorderColor3 =
         theme.Border
 
-    --------------------------------------------------------
-    -- TEXT
-    --------------------------------------------------------
-
     self.TitleLabel.TextColor3 =
         theme.Text
 
     self.ToggleButton.TextColor3 =
         theme.Text
 
-    --------------------------------------------------------
-    -- FONT
-    --------------------------------------------------------
-
     self:SetFont(
         self.Window.CurrentFont
     )
 
     --------------------------------------------------------
-    -- CHILD ELEMENTS
+    -- UPDATE CHILDREN
     --------------------------------------------------------
 
-    for _, element in ipairs(
-        self.Elements
-    ) do
-
+    for _, element in ipairs(self.Elements) do
         if element.UpdateTheme then
             element:UpdateTheme(theme)
         end
+    end
 
+    --------------------------------------------------------
+    -- REFRESH OPEN HEIGHT
+    --------------------------------------------------------
+
+    if self.Opened then
+        self:_RefreshOpenHeight(false)
     end
 end
 
@@ -699,7 +678,6 @@ end
 ------------------------------------------------------------
 
 function Section:Destroy()
-
     if self.Destroyed then
         return
     end
@@ -711,7 +689,6 @@ function Section:Destroy()
     --------------------------------------------------------
 
     for i = #self.Elements, 1, -1 do
-
         local element =
             self.Elements[i]
 
@@ -719,9 +696,7 @@ function Section:Destroy()
             and element.Destroy then
 
             element:Destroy()
-
         end
-
     end
 
     table.clear(
@@ -729,7 +704,7 @@ function Section:Destroy()
     )
 
     --------------------------------------------------------
-    -- DESTROY INSTANCE
+    -- REMOVE INSTANCE
     --------------------------------------------------------
 
     if self.Container then
@@ -738,7 +713,7 @@ function Section:Destroy()
     end
 
     --------------------------------------------------------
-    -- REMOVE FROM PARENT ELEMENT LIST
+    -- REMOVE FROM PARENT
     --------------------------------------------------------
 
     for i, element in ipairs(
@@ -746,15 +721,12 @@ function Section:Destroy()
     ) do
 
         if element == self then
-
             table.remove(
                 self.Parent.Elements,
                 i
             )
-
             break
         end
-
     end
 end
 
@@ -763,7 +735,6 @@ end
 ------------------------------------------------------------
 
 function Section:Button(options)
-
     if not self.Window.ButtonModule then
         warn("ButtonModule chưa được load!")
         return nil
@@ -776,7 +747,6 @@ function Section:Button(options)
 end
 
 function Section:Toggle(options)
-
     if not self.Window.ToggleModule then
         warn("ToggleModule chưa được load!")
         return nil
@@ -789,7 +759,6 @@ function Section:Toggle(options)
 end
 
 function Section:Slider(options)
-
     if not self.Window.SliderModule then
         warn("SliderModule chưa được load!")
         return nil
@@ -802,7 +771,6 @@ function Section:Slider(options)
 end
 
 function Section:Dropdown(options)
-
     if not self.Window.DropdownModule then
         warn("DropdownModule chưa được load!")
         return nil
@@ -815,7 +783,6 @@ function Section:Dropdown(options)
 end
 
 function Section:TextBox(options)
-
     if not self.Window.TextBoxModule then
         warn("TextBoxModule chưa được load!")
         return nil
@@ -828,7 +795,6 @@ function Section:TextBox(options)
 end
 
 function Section:Paragraph(options)
-
     if not self.Window.ParagraphModule then
         warn("ParagraphModule chưa được load!")
         return nil
@@ -841,7 +807,6 @@ function Section:Paragraph(options)
 end
 
 function Section:Label(options)
-
     if not self.Window.LabelModule then
         warn("LabelModule chưa được load!")
         return nil
@@ -854,7 +819,6 @@ function Section:Label(options)
 end
 
 function Section:Divider(options)
-
     if not self.Window.DividerModule then
         warn("DividerModule chưa được load!")
         return nil
@@ -867,7 +831,6 @@ function Section:Divider(options)
 end
 
 function Section:Image(options)
-
     if not self.Window.ImageModule then
         warn("ImageModule chưa được load!")
         return nil
@@ -884,7 +847,6 @@ end
 ------------------------------------------------------------
 
 function Section:Section(options)
-
     if not self.Window.SectionModule then
         warn("SectionModule chưa được load!")
         return nil
