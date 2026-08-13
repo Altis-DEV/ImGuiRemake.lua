@@ -1164,6 +1164,22 @@ function Section:Image(options)
     )
 end
 
+function Section:Row(options)
+
+    if not self.Window.RowModule then
+        warn(
+            "RowModule chưa được load!"
+        )
+
+        return nil
+    end
+
+    return self.Window.RowModule.new(
+        self,
+        options or {}
+    )
+end
+
 ------------------------------------------------------------
 -- NESTED SECTION
 ------------------------------------------------------------
