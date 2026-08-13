@@ -121,6 +121,9 @@ local ImageModule =
 local SectionModule =
     LoadModule("Components/Section.lua")
 
+local RowModule =
+    LoadModule("Components/Row.lua")
+
 ------------------------------------------------------------
 -- INJECT TAB MODULE
 ------------------------------------------------------------
@@ -161,6 +164,9 @@ WindowModule.ImageModule =
 
 WindowModule.SectionModule =
     SectionModule
+
+WindowModule.RowModule =
+    RowModule
 
 ------------------------------------------------------------
 -- CREATE WINDOW
