@@ -33,9 +33,10 @@ Theme.Themes = {
         DropdownOptionHover = Color3.fromRGB(50, 50, 50),
 
         TextBoxFrame = Color3.fromRGB(38, 38, 38),
-        -- Màu subtitle / placeholder
-        TextBoxText = Color3.fromRGB(150, 150, 150),
-        
+
+        -- Placeholder text
+        Placeholder = Color3.fromRGB(150, 150, 150),
+
         ParagraphTitleFrame = Color3.fromRGB(32, 32, 32),
         ParagraphTextFrame = Color3.fromRGB(26, 26, 26),
 
@@ -43,6 +44,10 @@ Theme.Themes = {
         SectionElementContainer = Color3.fromRGB(25, 25, 25),
     }
 }
+
+------------------------------------------------------------
+-- CREATE THEME
+------------------------------------------------------------
 
 function Theme:CreateTheme(themeName, colorTable)
     assert(
@@ -57,18 +62,35 @@ function Theme:CreateTheme(themeName, colorTable)
 
     local newTheme = {}
 
-    for key, value in pairs(self.Themes.Default) do
+    --------------------------------------------------------
+    -- COPY DEFAULT
+    --------------------------------------------------------
+
+    for key, value in pairs(
+        self.Themes.Default
+    ) do
         newTheme[key] = value
     end
 
-    for key, value in pairs(colorTable) do
+    --------------------------------------------------------
+    -- OVERRIDE
+    --------------------------------------------------------
+
+    for key, value in pairs(
+        colorTable
+    ) do
         newTheme[key] = value
     end
 
-    self.Themes[themeName] = newTheme
+    self.Themes[themeName] =
+        newTheme
 
     return newTheme
 end
+
+------------------------------------------------------------
+-- GET THEME
+------------------------------------------------------------
 
 function Theme:GetTheme(themeName)
     return self.Themes[themeName]
