@@ -118,6 +118,9 @@ local DividerModule =
 local ImageModule =
     LoadModule("Components/Image.lua")
 
+local SectionModule =
+    LoadModule("Components/Section.lua")
+
 ------------------------------------------------------------
 -- INJECT TAB MODULE
 ------------------------------------------------------------
@@ -155,6 +158,9 @@ WindowModule.DividerModule =
 
 WindowModule.ImageModule =
     ImageModule
+
+WindowModule.SectionModule =
+    SectionModule
 
 ------------------------------------------------------------
 -- CREATE WINDOW
