@@ -10,11 +10,7 @@ local TweenService = game:GetService("TweenService")
 ------------------------------------------------------------
 
 local HEADER_HEIGHT = 30
-
--- Element trong Section thụt vào 10px
 local INDENT = 10
-
--- Animation
 local ANIMATION_TIME = 0.22
 
 local CLOSED_ROTATION = -90
@@ -25,7 +21,6 @@ local OPEN_ROTATION = 0
 ------------------------------------------------------------
 
 function Section.new(parent, options)
-
     options = options or {}
 
     local self = setmetatable({}, Section)
@@ -33,7 +28,7 @@ function Section.new(parent, options)
     --------------------------------------------------------
     -- PARENT
     --
-    -- parent:
+    -- parent can be:
     --   Tab
     --   Section
     --------------------------------------------------------
@@ -50,14 +45,16 @@ function Section.new(parent, options)
 
     self.Destroyed = false
 
+    -- Giống Tab
     self.Elements = {}
 
     --------------------------------------------------------
-    -- SECTION ITSELF = 1 ELEMENT OF PARENT
+    -- SECTION CONTAINER
+    --
+    -- Section itself = 1 element in parent
     --------------------------------------------------------
 
     self.Container = Instance.new("Frame")
-
     self.Container.Name =
         self.Title .. "_Section"
 
@@ -72,37 +69,33 @@ function Section.new(parent, options)
     self.Container.AutomaticSize =
         Enum.AutomaticSize.Y
 
-    self.Container.BackgroundTransparency =
-        1
-
-    self.Container.BorderSizePixel =
-        0
+    self.Container.BackgroundTransparency = 1
+    self.Container.BorderSizePixel = 0
 
     self.Container.Parent =
         parent.ContentFrame
 
     --------------------------------------------------------
-    -- INTERNAL LAYOUT
-    --
-    -- TitleFrame
-    -- ElementContainer
+    -- SECTION INTERNAL LAYOUT
     --------------------------------------------------------
 
-    self.Layout = Instance.new("UIListLayout")
+    self.SectionLayout =
+        Instance.new("UIListLayout")
 
-    self.Layout.Name =
+    self.SectionLayout.Name =
         "SectionLayout"
 
-    self.Layout.FillDirection =
+    self.SectionLayout.FillDirection =
         Enum.FillDirection.Vertical
 
-    self.Layout.SortOrder =
+    self.SectionLayout.SortOrder =
         Enum.SortOrder.LayoutOrder
 
-    self.Layout.Padding =
+    -- Hai border chồng lên nhau 1px
+    self.SectionLayout.Padding =
         UDim.new(0, -1)
 
-    self.Layout.Parent =
+    self.SectionLayout.Parent =
         self.Container
 
     --------------------------------------------------------
@@ -110,10 +103,9 @@ function Section.new(parent, options)
     --------------------------------------------------------
 
     self.TitleFrame = Instance.new("Frame")
+    self.TitleFrame.Name = "TitleFrame"
 
-    self.TitleFrame.Name =
-        "TitleFrame"
-
+    -- FULL WIDTH
     self.TitleFrame.Size =
         UDim2.new(
             1,
@@ -129,12 +121,9 @@ function Section.new(parent, options)
     self.TitleFrame.BorderColor3 =
         self.Window.ThemeData.Border
 
-    self.TitleFrame.BorderSizePixel =
-        1
+    self.TitleFrame.BorderSizePixel = 1
 
-    self.TitleFrame.LayoutOrder =
-        1
-
+    self.TitleFrame.LayoutOrder = 1
     self.TitleFrame.Parent =
         self.Container
 
@@ -142,7 +131,8 @@ function Section.new(parent, options)
     -- TOGGLE BUTTON
     --------------------------------------------------------
 
-    self.ToggleButton = Instance.new("TextButton")
+    self.ToggleButton =
+        Instance.new("TextButton")
 
     self.ToggleButton.Name =
         "ToggleButton"
@@ -163,17 +153,10 @@ function Section.new(parent, options)
             0
         )
 
-    self.ToggleButton.BackgroundTransparency =
-        1
+    self.ToggleButton.BackgroundTransparency = 1
+    self.ToggleButton.BorderSizePixel = 0
 
-    self.ToggleButton.BorderSizePixel =
-        0
-
-    -- Không đổi text.
-    -- Đóng: ▼ xoay -90 = ▶
-    -- Mở:  ▼ xoay 0  = ▼
-    self.ToggleButton.Text =
-        "▼"
+    self.ToggleButton.Text = "▼"
 
     self.ToggleButton.Rotation =
         self.Opened
@@ -183,14 +166,11 @@ function Section.new(parent, options)
     self.ToggleButton.TextColor3 =
         self.Window.ThemeData.Text
 
-    self.ToggleButton.TextSize =
-        14
-
+    self.ToggleButton.TextSize = 14
     self.ToggleButton.Font =
         self.Window.CurrentFont
 
-    self.ToggleButton.AutoButtonColor =
-        false
+    self.ToggleButton.AutoButtonColor = false
 
     self.ToggleButton.Parent =
         self.TitleFrame
@@ -199,7 +179,8 @@ function Section.new(parent, options)
     -- TITLE LABEL
     --------------------------------------------------------
 
-    self.TitleLabel = Instance.new("TextLabel")
+    self.TitleLabel =
+        Instance.new("TextLabel")
 
     self.TitleLabel.Name =
         "Title"
@@ -220,12 +201,10 @@ function Section.new(parent, options)
             0
         )
 
-    self.TitleLabel.BackgroundTransparency =
-        1
+    self.TitleLabel.BackgroundTransparency = 1
 
-    -- Section không dùng RichText
-    self.TitleLabel.RichText =
-        false
+    -- Section title KHÔNG RichText
+    self.TitleLabel.RichText = false
 
     self.TitleLabel.Text =
         self.Title
@@ -233,9 +212,7 @@ function Section.new(parent, options)
     self.TitleLabel.TextColor3 =
         self.Window.ThemeData.Text
 
-    self.TitleLabel.TextSize =
-        13
-
+    self.TitleLabel.TextSize = 13
     self.TitleLabel.Font =
         self.Window.CurrentFont
 
@@ -251,10 +228,12 @@ function Section.new(parent, options)
     --------------------------------------------------------
     -- ELEMENT CONTAINER
     --
-    -- Đây là nơi chứa element của Section.
+    -- QUAN TRỌNG:
+    -- Full width bằng TitleFrame.
     --------------------------------------------------------
 
-    self.ElementContainer = Instance.new("Frame")
+    self.ElementContainer =
+        Instance.new("Frame")
 
     self.ElementContainer.Name =
         "ElementContainer"
@@ -262,21 +241,13 @@ function Section.new(parent, options)
     self.ElementContainer.Size =
         UDim2.new(
             1,
-            -INDENT,
+            0,
             0,
             0
         )
 
     self.ElementContainer.AutomaticSize =
         Enum.AutomaticSize.Y
-
-    self.ElementContainer.Position =
-        UDim2.new(
-            0,
-            INDENT,
-            0,
-            0
-        )
 
     self.ElementContainer.BackgroundColor3 =
         self.Window.ThemeData.SectionElementContainer
@@ -285,23 +256,33 @@ function Section.new(parent, options)
     self.ElementContainer.BorderColor3 =
         self.Window.ThemeData.Border
 
-    self.ElementContainer.BorderSizePixel =
-        1
+    self.ElementContainer.BorderSizePixel = 1
 
-    self.ElementContainer.LayoutOrder =
-        2
+    self.ElementContainer.ClipsDescendants = true
 
-    self.ElementContainer.ClipsDescendants =
-        true
+    self.ElementContainer.LayoutOrder = 2
 
     self.ElementContainer.Parent =
         self.Container
 
     --------------------------------------------------------
+    -- CONTENT FRAME ALIAS
+    --
+    -- Các component hiện tại đều dùng:
+    -- tab.ContentFrame
+    --
+    -- Vì vậy Section phải expose ContentFrame.
+    --------------------------------------------------------
+
+    self.ContentFrame =
+        self.ElementContainer
+
+    --------------------------------------------------------
     -- ELEMENT LAYOUT
     --------------------------------------------------------
 
-    self.ElementLayout = Instance.new("UIListLayout")
+    self.ElementLayout =
+        Instance.new("UIListLayout")
 
     self.ElementLayout.Name =
         "ElementLayout"
@@ -319,23 +300,49 @@ function Section.new(parent, options)
         self.ElementContainer
 
     --------------------------------------------------------
-    -- INITIAL OPEN STATE
+    -- INDENT CONTENT
+    --
+    -- ElementContainer vẫn full width,
+    -- nhưng element bên trong thụt vào 10px.
+    --------------------------------------------------------
+
+    self.ContentPadding =
+        Instance.new("UIPadding")
+
+    self.ContentPadding.Name =
+        "ContentPadding"
+
+    self.ContentPadding.PaddingLeft =
+        UDim.new(0, INDENT)
+
+    self.ContentPadding.PaddingRight =
+        UDim.new(0, 5)
+
+    self.ContentPadding.PaddingTop =
+        UDim.new(0, 5)
+
+    self.ContentPadding.PaddingBottom =
+        UDim.new(0, 5)
+
+    self.ContentPadding.Parent =
+        self.ElementContainer
+
+    --------------------------------------------------------
+    -- INITIAL STATE
     --------------------------------------------------------
 
     if self.Opened then
 
-        self.ElementContainer.Visible =
-            true
+        self.ElementContainer.Visible = true
 
     else
 
-        self.ElementContainer.Visible =
-            false
+        self.ElementContainer.Visible = false
 
         self.ElementContainer.Size =
             UDim2.new(
                 1,
-                -INDENT,
+                0,
                 0,
                 0
             )
@@ -362,7 +369,7 @@ function Section.new(parent, options)
     )
 
     --------------------------------------------------------
-    -- REGISTER AS ONE ELEMENT
+    -- REGISTER AS ONE PARENT ELEMENT
     --------------------------------------------------------
 
     table.insert(
@@ -374,7 +381,7 @@ function Section.new(parent, options)
 end
 
 ------------------------------------------------------------
--- GET CONTENT HEIGHT
+-- CALCULATE CONTENT HEIGHT
 ------------------------------------------------------------
 
 function Section:_GetElementHeight()
@@ -383,10 +390,8 @@ function Section:_GetElementHeight()
         return 0
     end
 
-    local absoluteHeight =
-        self.ElementLayout.AbsoluteContentSize.Y
-
-    return absoluteHeight + 10
+    return self.ElementLayout.AbsoluteContentSize.Y
+        + 10
 end
 
 ------------------------------------------------------------
@@ -405,31 +410,25 @@ function Section:Open()
 
     self.Opened = true
 
-    --------------------------------------------------------
-    -- SHOW CONTAINER
-    --------------------------------------------------------
-
-    self.ElementContainer.Visible =
-        true
+    self.ElementContainer.Visible = true
 
     --------------------------------------------------------
-    -- INITIAL SIZE
+    -- Start from 0
     --------------------------------------------------------
 
     self.ElementContainer.Size =
         UDim2.new(
             1,
-            -INDENT,
+            0,
             0,
             0
         )
 
     --------------------------------------------------------
-    -- ARROW
+    -- Arrow
     --------------------------------------------------------
 
     TweenService:Create(
-
         self.ToggleButton,
 
         TweenInfo.new(
@@ -439,21 +438,19 @@ function Section:Open()
         ),
 
         {
-            Rotation =
-                OPEN_ROTATION
+            Rotation = OPEN_ROTATION
         }
 
     ):Play()
 
     --------------------------------------------------------
-    -- EXPAND
+    -- Expand
     --------------------------------------------------------
 
-    local targetHeight =
+    local height =
         self:_GetElementHeight()
 
     TweenService:Create(
-
         self.ElementContainer,
 
         TweenInfo.new(
@@ -466,9 +463,9 @@ function Section:Open()
             Size =
                 UDim2.new(
                     1,
-                    -INDENT,
                     0,
-                    targetHeight
+                    0,
+                    height
                 )
         }
 
@@ -492,11 +489,10 @@ function Section:Close()
     self.Opened = false
 
     --------------------------------------------------------
-    -- ARROW
+    -- Arrow
     --------------------------------------------------------
 
     TweenService:Create(
-
         self.ToggleButton,
 
         TweenInfo.new(
@@ -506,19 +502,17 @@ function Section:Close()
         ),
 
         {
-            Rotation =
-                CLOSED_ROTATION
+            Rotation = CLOSED_ROTATION
         }
 
     ):Play()
 
     --------------------------------------------------------
-    -- COLLAPSE
+    -- Collapse
     --------------------------------------------------------
 
     local tween =
         TweenService:Create(
-
             self.ElementContainer,
 
             TweenInfo.new(
@@ -531,7 +525,7 @@ function Section:Close()
                 Size =
                     UDim2.new(
                         1,
-                        -INDENT,
+                        0,
                         0,
                         0
                     )
@@ -548,10 +542,7 @@ function Section:Close()
             end
 
             if not self.Opened then
-
-                self.ElementContainer.Visible =
-                    false
-
+                self.ElementContainer.Visible = false
             end
 
         end
@@ -671,7 +662,7 @@ function Section:UpdateTheme(theme)
         theme.Border
 
     --------------------------------------------------------
-    -- TITLE
+    -- TEXT
     --------------------------------------------------------
 
     self.TitleLabel.TextColor3 =
@@ -742,16 +733,12 @@ function Section:Destroy()
     --------------------------------------------------------
 
     if self.Container then
-
         self.Container:Destroy()
-
-        self.Container =
-            nil
-
+        self.Container = nil
     end
 
     --------------------------------------------------------
-    -- REMOVE FROM PARENT
+    -- REMOVE FROM PARENT ELEMENT LIST
     --------------------------------------------------------
 
     for i, element in ipairs(
@@ -767,6 +754,7 @@ function Section:Destroy()
 
             break
         end
+
     end
 end
 
@@ -897,7 +885,12 @@ end
 
 function Section:Section(options)
 
-    return Section.new(
+    if not self.Window.SectionModule then
+        warn("SectionModule chưa được load!")
+        return nil
+    end
+
+    return self.Window.SectionModule.new(
         self,
         options or {}
     )
