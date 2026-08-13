@@ -1324,7 +1324,7 @@ ThemeTab:Button({
 
     Callback = function()
         Window:SetTitle(
-            "ImGuiRemake.lua | Public Example"
+            "ImGuiRemake.lua | Public Example Renamed"
         )
     end,
 })
@@ -1368,7 +1368,7 @@ ThemeTab:Paragraph({
     Title = "<b>Window Size Limits</b>",
 
     Text =
-        "Current example: MinSize = 450×320, "
+        "Current example: MinSize = 300×250, "
         .. "MaxSize = 1100×800. "
         .. "Use the resize handle in the bottom-right corner.",
 })
