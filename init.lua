@@ -124,6 +124,9 @@ local SectionModule =
 local RowModule =
     LoadModule("Components/Row.lua")
 
+local ModalModule =
+    LoadModule("Components/Modal.lua")
+
 ------------------------------------------------------------
 -- INJECT TAB MODULE
 ------------------------------------------------------------
@@ -168,6 +171,8 @@ WindowModule.SectionModule =
 WindowModule.RowModule =
     RowModule
 
+WindowModule.ModalModule =
+    ModalModule
 ------------------------------------------------------------
 -- CREATE WINDOW
 ------------------------------------------------------------
