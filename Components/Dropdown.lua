@@ -913,15 +913,43 @@ function Dropdown:SetOpen(state)
         return
     end
 
-    state =
-        state == true
+    state = state == true
 
     if self.Opened == state then
         return
     end
 
-    self.Opened =
-        state
+    self.Opened = state
+
+    --------------------------------------------------------
+    -- GET CURRENT DROPDOWN WIDTH
+    --
+    -- Quan trọng khi Dropdown nằm trong Row:
+    -- Row có thể đổi DropdownFrame từ 0.5 -> 1.
+    --------------------------------------------------------
+
+    local dropdownWidth =
+        self.DropdownFrame.Size
+
+    local targetWidth =
+        UDim2.new(
+            dropdownWidth.X.Scale,
+            dropdownWidth.X.Offset,
+            0,
+            0
+        )
+
+    local openSize =
+        UDim2.new(
+            dropdownWidth.X.Scale,
+            dropdownWidth.X.Offset,
+            0,
+            self.OpenHeight
+        )
+
+    --------------------------------------------------------
+    -- ARROW
+    --------------------------------------------------------
 
     local arrowRotation =
         state
@@ -936,10 +964,13 @@ function Dropdown:SetOpen(state)
             Enum.EasingDirection.Out
         ),
         {
-            Rotation =
-                arrowRotation
+            Rotation = arrowRotation
         }
     ):Play()
+
+    --------------------------------------------------------
+    -- OPEN
+    --------------------------------------------------------
 
     if state then
 
@@ -954,34 +985,28 @@ function Dropdown:SetOpen(state)
                 Enum.EasingDirection.Out
             ),
             {
-                Size =
-                    UDim2.new(
-                        DROPDOWN_WIDTH_SCALE,
-                        0,
-                        0,
-                        self.OpenHeight
-                    )
+                Size = openSize
             }
         ):Play()
+
+    --------------------------------------------------------
+    -- CLOSE
+    --------------------------------------------------------
 
     else
 
         local tween =
             TweenService:Create(
                 self.OptionsFrame,
+
                 TweenInfo.new(
                     0.2,
                     Enum.EasingStyle.Quad,
                     Enum.EasingDirection.Out
                 ),
+
                 {
-                    Size =
-                        UDim2.new(
-                            DROPDOWN_WIDTH_SCALE,
-                            0,
-                            0,
-                            0
-                        )
+                    Size = targetWidth
                 }
             )
 
