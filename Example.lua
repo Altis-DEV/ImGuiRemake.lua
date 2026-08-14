@@ -35,6 +35,9 @@
       SetClearTextOnFocus
 ]]
 
+
+
+
 ------------------------------------------------------------
 -- LOAD
 ------------------------------------------------------------
@@ -211,8 +214,42 @@ ButtonTab:Button({
 
 ButtonTab:Divider()
 
+------------------------------------------------------------
+-- BUTTON CUSTOM COLOR TEST
+------------------------------------------------------------
+
+local DangerButton = ButtonTab:Button({
+    Title = "Danger Button",
+    Color = Color3.fromRGB(180, 50, 50),
+    HighlightColor = Color3.fromRGB(220, 70, 70),
+
+    Callback = function()
+        print("[Button] Danger clicked")
+    end,
+})
+
+ButtonTab:Button({
+    Title = "Custom Green",
+    Color = Color3.fromRGB(45, 170, 90),
+    HighlightColor = Color3.fromRGB(60, 200, 110),
+
+    Callback = function()
+        print("[Button] Green clicked")
+    end,
+})
+
+ButtonTab:Button({
+    Title = "Custom Purple",
+    Color = Color3.fromRGB(130, 70, 190),
+    HighlightColor = Color3.fromRGB(160, 90, 220),
+
+    Callback = function()
+        print("[Button] Purple clicked")
+    end,
+})
+
 ButtonTab:Label({
-    Title = "Buttons support hover, click highlighting and callbacks.",
+    Title = "Buttons support hover,custom color,click highlighting and callbacks.",
 })
 
 ------------------------------------------------------------
@@ -686,44 +723,169 @@ ModalTab:Label({
     Title = "Modal appears above the entire Window as an overlay.",
 })
 
-local function createDestroyModal()
+ModalTab:Label({
+    Title = "<b>Modal Test</b>",
+})
+
+ModalTab:Paragraph({
+    Title = "<b>About Modal</b>",
+    Text = "Modal appears above the entire window, supports RichText, automatically expands with its content, uses UIScale for open/close animation, and allows multiple equally-sized buttons.",
+})
+
+------------------------------------------------------------
+-- NORMAL MODAL
+------------------------------------------------------------
+
+local function OpenNormalModal()
     local Modal
 
     Modal = ModalTab:Modal({
-        Title = '<font color="#FF5555" size="18"><b>Destroy Window</b></font>',
-        Text = "Do You Want To Destroy The Window?",
+        Title = "<b>Normal Modal</b>",
+        Text = "This is a normal Modal used to test the basic layout and animation.",
 
         Buttons = {
             {
                 Title = "No",
+
                 Callback = function()
-                    print("[Modal] No")
+                    print("[Normal Modal] No")
                     Modal:Close()
                 end,
             },
 
             {
                 Title = "Yes",
-                Color = Color3.fromRGB(180, 50, 50),
-                HighlightColor = Color3.fromRGB(220, 70, 70),
 
                 Callback = function()
-                    print("[Modal] Yes")
+                    print("[Normal Modal] Yes")
+                    Modal:Close()
+                end,
+            },
+        },
+    })
+end
+
+ModalTab:Button({
+    Title = "Open Normal Modal",
+    Type = "Full",
+
+    Callback = OpenNormalModal,
+})
+
+------------------------------------------------------------
+-- VERY LONG MODAL
+------------------------------------------------------------
+
+local function OpenLongModal()
+    local Modal
+
+    Modal = ModalTab:Modal({
+        Title =
+            '<font color="#55AAFF" size="20"><b>This Is An Extremely Long Modal Title Designed To Test Automatic TitleFrame Expansion And RichText Wrapping</b></font>',
+
+        Text =
+            '<font color="#FFFFFF">This is an intentionally very long Modal text designed to test the complete automatic sizing system. The TextFrame should automatically expand when this paragraph wraps to multiple lines, and the ButtonFrame should always remain directly underneath it. The entire Modal should remain centered on the screen while the UIScale animation only changes its visual scale.</font>\n\n'
+            .. '<font color="#55FF55"><b>This green section tests RichText inside the long Modal.</b></font>\n\n'
+            .. '<font color="#FFD75F">This yellow section adds even more content so the Modal becomes significantly taller than a normal Modal.</font>',
+
+        Buttons = {
+            {
+                Title = "Cancel",
+
+                Callback = function()
+                    print("[Long Modal] Cancel")
+                    Modal:Close()
+                end,
+            },
+
+            {
+                Title = "Continue",
+
+                Callback = function()
+                    print("[Long Modal] Continue")
+                    Modal:Close()
+                end,
+            },
+        },
+    })
+end
+
+ModalTab:Button({
+    Title = "Open Very Long Modal",
+    Type = "Full",
+
+    Callback = OpenLongModal,
+})
+
+------------------------------------------------------------
+-- DESTROY WINDOW MODAL
+------------------------------------------------------------
+
+local function OpenDestroyModal()
+    local Modal
+
+    Modal = ModalTab:Modal({
+        Title =
+            '<font color="#FF5555" size="18"><b>Destroy Window</b></font>',
+
+        Text =
+            "Do You Want To Destroy The Window?",
+
+        Buttons = {
+            {
+                Title = "No",
+
+                Callback = function()
+                    print("[Destroy Modal] No")
+                    Modal:Close()
+                end,
+            },
+
+            {
+                Title = "Yes",
+
+                Color =
+                    Color3.fromRGB(
+                        180,
+                        50,
+                        50
+                    ),
+
+                HighlightColor =
+                    Color3.fromRGB(
+                        220,
+                        70,
+                        70
+                    ),
+
+                Callback = function()
+                    print("[Destroy Modal] Yes")
                     Window:Destroy()
                 end,
             },
         },
     })
-
-    return Modal
 end
 
 ModalTab:Button({
     Title = "Window Destroy",
+    Type = "Full",
 
-    Callback = function()
-        createDestroyModal()
-    end,
+    Color =
+        Color3.fromRGB(
+            180,
+            50,
+            50
+        ),
+
+    HighlightColor =
+        Color3.fromRGB(
+            220,
+            70,
+            70
+        ),
+
+    Callback = OpenDestroyModal,
 })
 
 ModalTab:Paragraph({
@@ -835,3 +997,4 @@ print("Button / Toggle / Slider / Dropdown / TextBox")
 print("Paragraph / Label / Divider / Image")
 print("Themes / Fonts / Resize / Nesting / RichText")
 print("======================================================")
+print("thanks for use the ui library❤️")
