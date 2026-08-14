@@ -8,7 +8,6 @@ local DEFAULT_SIZE =
 
 local DEFAULT_TEXT_SIZE = 13
 local PADDING = 8
-local SCROLLBAR_THICKNESS = 4
 
 local DEFAULT_TEXT_COLOR =
     Color3.fromRGB(255, 255, 255)
@@ -39,27 +38,33 @@ function TextInput.new(tab, options)
     self.Text =
         tostring(
             options.Text
-                or ""
+            or ""
         )
 
     self.Placeholder =
         tostring(
             options.Placeholder
-                or ""
+            or ""
         )
 
+    self.ClearTextOnFocus =
+        options.ClearTextOnFocus == true
+
     self.Destroyed =
+        false
+
+    self.Focused =
         false
 
     local theme =
         self.Window.ThemeData
 
     ------------------------------------------------------------
-    -- SCROLLING FRAME
+    -- MAIN TEXTBOX FRAME
     ------------------------------------------------------------
 
     self.Container =
-        Instance.new("ScrollingFrame")
+        Instance.new("Frame")
 
     self.Container.Name =
         "TextInput"
@@ -76,61 +81,74 @@ function TextInput.new(tab, options)
     self.Container.BorderSizePixel =
         1
 
-    self.Container.ScrollBarThickness =
-        SCROLLBAR_THICKNESS
-
-    self.Container.ScrollingDirection =
-        Enum.ScrollingDirection.Y
-
-    self.Container.AutomaticCanvasSize =
-        Enum.AutomaticSize.Y
-
-    self.Container.CanvasSize =
-        UDim2.new(
-            0,
-            0,
-            0,
-            0
-        )
-
-    self.Container.ScrollingEnabled =
+    self.Container.ClipsDescendants =
         true
 
     self.Container.Parent =
         self.Tab.ContentFrame
 
     ------------------------------------------------------------
-    -- PADDING
+    -- TEXT DISPLAY
+    --
+    -- Dùng khi TextInput không focus để hỗ trợ
+    -- TextTruncate.AtEnd (...).
     ------------------------------------------------------------
 
-    self.Padding =
-        Instance.new("UIPadding")
+    self.Display =
+        Instance.new("TextLabel")
 
-    self.Padding.PaddingTop =
-        UDim.new(
+    self.Display.Name =
+        "Display"
+
+    self.Display.Size =
+        UDim2.new(
+            1,
+            -(PADDING * 2),
+            1,
+            -(PADDING * 2)
+        )
+
+    self.Display.Position =
+        UDim2.new(
+            0,
+            PADDING,
             0,
             PADDING
         )
 
-    self.Padding.PaddingBottom =
-        UDim.new(
-            0,
-            PADDING
-        )
+    self.Display.BackgroundTransparency =
+        1
 
-    self.Padding.PaddingLeft =
-        UDim.new(
-            0,
-            PADDING
-        )
+    self.Display.TextWrapped =
+        true
 
-    self.Padding.PaddingRight =
-        UDim.new(
-            0,
-            PADDING
-        )
+    self.Display.TextTruncate =
+        Enum.TextTruncate.AtEnd
 
-    self.Padding.Parent =
+    self.Display.TextXAlignment =
+        Enum.TextXAlignment.Left
+
+    self.Display.TextYAlignment =
+        Enum.TextYAlignment.Top
+
+    self.Display.TextSize =
+        DEFAULT_TEXT_SIZE
+
+    self.Display.Font =
+        self.Window.CurrentFont
+
+    self.Display.TextColor3 =
+        theme.TextInputText
+        or theme.Text
+        or DEFAULT_TEXT_COLOR
+
+    self.Display.Text =
+        self.Text
+
+    self.Display.Visible =
+        not self.Focused
+
+    self.Display.Parent =
         self.Container
 
     ------------------------------------------------------------
@@ -147,12 +165,17 @@ function TextInput.new(tab, options)
         UDim2.new(
             1,
             -(PADDING * 2),
-            0,
-            0
+            1,
+            -(PADDING * 2)
         )
 
-    self.Input.AutomaticSize =
-        Enum.AutomaticSize.Y
+    self.Input.Position =
+        UDim2.new(
+            0,
+            PADDING,
+            0,
+            PADDING
+        )
 
     self.Input.BackgroundTransparency =
         1
@@ -161,7 +184,7 @@ function TextInput.new(tab, options)
         0
 
     self.Input.ClearTextOnFocus =
-        false
+        self.ClearTextOnFocus
 
     self.Input.MultiLine =
         true
@@ -181,21 +204,10 @@ function TextInput.new(tab, options)
     self.Input.Font =
         self.Window.CurrentFont
 
-    ------------------------------------------------------------
-    -- TEXT
-    ------------------------------------------------------------
-
     self.Input.TextColor3 =
         theme.TextInputText
         or theme.Text
         or DEFAULT_TEXT_COLOR
-
-    self.Input.Text =
-        self.Text
-
-    ------------------------------------------------------------
-    -- PLACEHOLDER
-    ------------------------------------------------------------
 
     self.Input.PlaceholderText =
         self.Placeholder
@@ -205,11 +217,87 @@ function TextInput.new(tab, options)
         or theme.Placeholder
         or DEFAULT_PLACEHOLDER_COLOR
 
+    self.Input.Text =
+        self.Text
+
+    self.Input.Visible =
+        self.Focused
+
     self.Input.Parent =
         self.Container
 
     ------------------------------------------------------------
-    -- UPDATE INTERNAL TEXT
+    -- FOCUS
+    ------------------------------------------------------------
+
+    self.Input.Focused:Connect(
+        function()
+
+            if self.Destroyed then
+                return
+            end
+
+            self.Focused =
+                true
+
+            self.Display.Visible =
+                false
+
+            self.Input.Visible =
+                true
+
+            ------------------------------------------------
+            -- Đồng bộ display sau khi Roblox xử lý
+            -- ClearTextOnFocus.
+            ------------------------------------------------
+
+            task.defer(
+                function()
+
+                    if self.Destroyed then
+                        return
+                    end
+
+                    self.Text =
+                        self.Input.Text
+
+                    self.Display.Text =
+                        self.Text
+                end
+            )
+        end
+    )
+
+    ------------------------------------------------------------
+    -- FOCUS LOST
+    ------------------------------------------------------------
+
+    self.Input.FocusLost:Connect(
+        function()
+
+            if self.Destroyed then
+                return
+            end
+
+            self.Focused =
+                false
+
+            self.Text =
+                self.Input.Text
+
+            self.Display.Text =
+                self.Text
+
+            self.Input.Visible =
+                false
+
+            self.Display.Visible =
+                true
+        end
+    )
+
+    ------------------------------------------------------------
+    -- TEXT CHANGED
     ------------------------------------------------------------
 
     self.Input:GetPropertyChangedSignal(
@@ -223,6 +311,9 @@ function TextInput.new(tab, options)
 
             self.Text =
                 self.Input.Text
+
+            self.Display.Text =
+                self.Text
         end
     )
 
@@ -251,17 +342,14 @@ function TextInput:SetText(text)
     self.Text =
         tostring(
             text
-                or ""
+            or ""
         )
 
     self.Input.Text =
         self.Text
 
-    self.Container.CanvasPosition =
-        Vector2.new(
-            0,
-            math.huge
-        )
+    self.Display.Text =
+        self.Text
 end
 
 ------------------------------------------------------------
@@ -274,15 +362,14 @@ function TextInput:Clear()
         return
     end
 
-    self.Text = ""
+    self.Text =
+        ""
 
-    self.Input.Text = ""
+    self.Input.Text =
+        ""
 
-    self.Container.CanvasPosition =
-        Vector2.new(
-            0,
-            0
-        )
+    self.Display.Text =
+        ""
 end
 
 ------------------------------------------------------------
@@ -294,6 +381,10 @@ function TextInput:SetFont(fontType)
     if self.Destroyed then
         return
     end
+
+    --------------------------------------------------------
+    -- CUSTOM FONT
+    --------------------------------------------------------
 
     if typeof(fontType) == "string"
         and string.find(
@@ -313,18 +404,29 @@ function TextInput:SetFont(fontType)
             )
 
         if ok and customFont then
+
             self.Input.FontFace =
+                customFont
+
+            self.Display.FontFace =
                 customFont
         end
 
         return
     end
 
+    --------------------------------------------------------
+    -- ENUM FONT
+    --------------------------------------------------------
+
     if typeof(fontType) == "EnumItem"
         and fontType.EnumType
             == Enum.Font then
 
         self.Input.Font =
+            fontType
+
+        self.Display.Font =
             fontType
     end
 end
@@ -339,9 +441,9 @@ function TextInput:UpdateTheme(theme)
         return
     end
 
-    ------------------------------------------------------------
+    --------------------------------------------------------
     -- FRAME
-    ------------------------------------------------------------
+    --------------------------------------------------------
 
     self.Container.BackgroundColor3 =
         theme.TextInputFrame
@@ -349,26 +451,33 @@ function TextInput:UpdateTheme(theme)
     self.Container.BorderColor3 =
         theme.Border
 
-    ------------------------------------------------------------
+    --------------------------------------------------------
     -- TEXT
-    ------------------------------------------------------------
+    --------------------------------------------------------
 
-    self.Input.TextColor3 =
+    local textColor =
         theme.TextInputText
         or theme.Text
+        or DEFAULT_TEXT_COLOR
 
-    ------------------------------------------------------------
+    self.Input.TextColor3 =
+        textColor
+
+    self.Display.TextColor3 =
+        textColor
+
+    --------------------------------------------------------
     -- PLACEHOLDER
-    ------------------------------------------------------------
+    --------------------------------------------------------
 
     self.Input.PlaceholderColor3 =
         theme.TextInputPlaceholder
         or theme.Placeholder
         or DEFAULT_PLACEHOLDER_COLOR
 
-    ------------------------------------------------------------
+    --------------------------------------------------------
     -- FONT
-    ------------------------------------------------------------
+    --------------------------------------------------------
 
     self:SetFont(
         self.Window.CurrentFont
