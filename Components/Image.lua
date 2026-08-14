@@ -152,6 +152,7 @@ function Image.new(tab, options)
 
     self.Tab = tab
     self.Window = tab.Window
+    self.WidthAtRow = options.WidthAtRow
 
     self.Source =
         tostring(options.Image)
