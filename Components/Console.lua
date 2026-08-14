@@ -24,6 +24,7 @@ function Console.new(tab, options)
 
     self.Tab = tab
     self.Window = tab.Window
+    self.WidthAtRow = options.WidthAtRow
 
     self.Size =
         options.Size
