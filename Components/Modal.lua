@@ -5,34 +5,41 @@ Modal.__index = Modal
 
 local TweenService = game:GetService("TweenService")
 
-------------------------------------------------------------
--- CONSTANTS
-------------------------------------------------------------
-
-local MODAL_WIDTH = 420
-
-local TITLE_PADDING_X = 10
-local TITLE_PADDING_Y = 8
-
-local TEXT_PADDING_X = 10
-local TEXT_PADDING_Y = 8
-
-local TITLE_MIN_HEIGHT = 32
-local TEXT_MIN_HEIGHT = 42
+local PADDING_X = 8
+local PADDING_Y = 6
+local DEFAULT_TEXT_SIZE = 13
 
 local BUTTON_HEIGHT = 32
 local BUTTON_PADDING_X = 6
 local BUTTON_PADDING_Y = 6
 local BUTTON_GAP = 5
 
-local MIN_MODAL_HEIGHT = 110
 local ANIMATION_TIME = 0.22
+
+local DEFAULT_BACKGROUND =
+    Color3.fromRGB(22, 22, 22)
+
+local DEFAULT_TITLE_BACKGROUND =
+    Color3.fromRGB(32, 32, 32)
+
+local DEFAULT_TEXT_BACKGROUND =
+    Color3.fromRGB(26, 26, 26)
+
+local DEFAULT_BUTTON_BACKGROUND =
+    Color3.fromRGB(40, 90, 175)
+
+local DEFAULT_BUTTON_HIGHLIGHT =
+    Color3.fromRGB(60, 110, 220)
+
+local DEFAULT_TEXT_COLOR =
+    Color3.fromRGB(255, 255, 255)
 
 ------------------------------------------------------------
 -- FONT
 ------------------------------------------------------------
 
 local function setFont(instance, fontType)
+
     if typeof(fontType) == "string"
         and string.find(
             string.lower(fontType),
@@ -41,9 +48,10 @@ local function setFont(instance, fontType)
             true
         ) then
 
-        local ok, customFont = pcall(function()
-            return Font.new(fontType)
-        end)
+        local ok, customFont =
+            pcall(function()
+                return Font.new(fontType)
+            end)
 
         if ok and customFont then
             instance.FontFace = customFont
@@ -60,66 +68,46 @@ local function setFont(instance, fontType)
 end
 
 ------------------------------------------------------------
--- MEASURE RICHTEXT LABEL
-------------------------------------------------------------
-
-local function measureText(
-    parent,
-    text,
-    width,
-    textSize,
-    font,
-    richText
-)
-    local temp = Instance.new("TextLabel")
-
-    temp.Name = "_ModalMeasure"
-    temp.Size = UDim2.new(0, width, 0, 1)
-    temp.BackgroundTransparency = 1
-
-    temp.Text = text or ""
-    temp.TextSize = textSize
-    temp.Font = font
-    temp.RichText = richText == true
-    temp.TextWrapped = true
-
-    temp.TextXAlignment =
-        Enum.TextXAlignment.Left
-
-    temp.TextYAlignment =
-        Enum.TextYAlignment.Top
-
-    temp.Parent = parent
-
-    -- Đợi Roblox cập nhật TextBounds.
-    task.wait()
-
-    local height =
-        temp.TextBounds.Y
-
-    temp:Destroy()
-
-    return height
-end
-
-------------------------------------------------------------
 -- CONSTRUCTOR
 ------------------------------------------------------------
 
 function Modal.new(tab, options)
+
     options = options or {}
 
+    --------------------------------------------------------
+    -- TITLE REQUIRED
+    --------------------------------------------------------
+
+    if options.Title == nil then
+        error(
+            "Modal requires a Title",
+            2
+        )
+    end
+
     local self =
-        setmetatable({}, Modal)
+        setmetatable(
+            {},
+            Modal
+        )
 
     self.Tab = tab
     self.Window = tab.Window
 
     self.Title =
-        tostring(options.Title or "Modal")
+        tostring(
+            options.Title
+        )
+
+    -- Text optional, giống Paragraph
+    self.HasText =
+        options.Text ~= nil
 
     self.Text =
-        tostring(options.Text or "")
+        self.HasText
+        and tostring(options.Text)
+        or ""
 
     self.Buttons =
         type(options.Buttons) == "table"
@@ -145,22 +133,40 @@ function Modal.new(tab, options)
         "ModalOverlay"
 
     self.Overlay.Size =
-        UDim2.new(1, 0, 1, 0)
+        UDim2.new(
+            1,
+            0,
+            1,
+            0
+        )
 
     self.Overlay.Position =
-        UDim2.new(0, 0, 0, 0)
+        UDim2.new(
+            0,
+            0,
+            0,
+            0
+        )
 
     self.Overlay.BackgroundColor3 =
         theme.ModalOverlay
-        or Color3.fromRGB(0, 0, 0)
+        or Color3.fromRGB(
+            0,
+            0,
+            0
+        )
 
     self.Overlay.BackgroundTransparency =
         theme.ModalOverlayTransparency ~= nil
         and theme.ModalOverlayTransparency
         or 0.45
 
-    self.Overlay.BorderSizePixel = 0
-    self.Overlay.ZIndex = 500
+    self.Overlay.BorderSizePixel =
+        0
+
+    self.Overlay.ZIndex =
+        500
+
     self.Overlay.Parent =
         self.Window.ScreenGui
 
@@ -174,8 +180,22 @@ function Modal.new(tab, options)
     self.ModalFrame.Name =
         "ModalFrame"
 
+    self.ModalFrame.Size =
+        UDim2.new(
+            0,
+            0,
+            0,
+            0
+        )
+
+    self.ModalFrame.AutomaticSize =
+        Enum.AutomaticSize.Y
+
     self.ModalFrame.AnchorPoint =
-        Vector2.new(0.5, 0.5)
+        Vector2.new(
+            0.5,
+            0.5
+        )
 
     self.ModalFrame.Position =
         UDim2.new(
@@ -185,47 +205,77 @@ function Modal.new(tab, options)
             0
         )
 
-    self.ModalFrame.Size =
-        UDim2.new(
-            0,
-            40,
-            0,
-            40
-        )
-
     self.ModalFrame.BackgroundColor3 =
         theme.ModalFrame
         or theme.Background
+        or DEFAULT_BACKGROUND
 
     self.ModalFrame.BorderColor3 =
         theme.Border
+        or Color3.fromRGB(
+            60,
+            60,
+            60
+        )
 
-    self.ModalFrame.BorderSizePixel = 1
-    self.ModalFrame.ClipsDescendants = true
-    self.ModalFrame.ZIndex = 501
+    self.ModalFrame.BorderSizePixel =
+        1
+
+    self.ModalFrame.ClipsDescendants =
+        true
+
+    self.ModalFrame.ZIndex =
+        501
+
     self.ModalFrame.Parent =
         self.Overlay
 
     --------------------------------------------------------
-    -- LAYOUT
+    -- UI SCALE
+    --
+    -- Đây là animation chính của Modal.
     --------------------------------------------------------
 
-    self.Layout =
-        Instance.new("UIListLayout")
+    self.UIScale =
+        Instance.new("UIScale")
 
-    self.Layout.Name =
-        "ModalLayout"
+    self.UIScale.Name =
+        "ModalScale"
 
-    self.Layout.FillDirection =
-        Enum.FillDirection.Vertical
+    self.UIScale.Scale =
+        0
 
-    self.Layout.SortOrder =
-        Enum.SortOrder.LayoutOrder
+    self.UIScale.Parent =
+        self.ModalFrame
 
-    self.Layout.Padding =
-        UDim.new(0, -1)
+    --------------------------------------------------------
+    -- INNER CONTENT CONTAINER
+    --------------------------------------------------------
 
-    self.Layout.Parent =
+    self.ContentContainer =
+        Instance.new("Frame")
+
+    self.ContentContainer.Name =
+        "ContentContainer"
+
+    self.ContentContainer.Size =
+        UDim2.new(
+            1,
+            0,
+            0,
+            0
+        )
+
+    self.ContentContainer.AutomaticSize =
+        Enum.AutomaticSize.Y
+
+    self.ContentContainer.BackgroundTransparency =
+        1
+
+    self.ContentContainer.BorderSizePixel =
+        0
+
+    self.ContentContainer.Parent =
         self.ModalFrame
 
     --------------------------------------------------------
@@ -243,22 +293,33 @@ function Modal.new(tab, options)
             1,
             0,
             0,
-            TITLE_MIN_HEIGHT
+            0
         )
+
+    self.TitleFrame.AutomaticSize =
+        Enum.AutomaticSize.Y
 
     self.TitleFrame.BackgroundColor3 =
         theme.ModalTitleFrame
         or theme.Background
+        or DEFAULT_TITLE_BACKGROUND
 
     self.TitleFrame.BorderColor3 =
         theme.Border
+        or Color3.fromRGB(
+            60,
+            60,
+            60
+        )
 
-    self.TitleFrame.BorderSizePixel = 1
-    self.TitleFrame.ClipsDescendants = true
-    self.TitleFrame.LayoutOrder = 1
-    self.TitleFrame.ZIndex = 502
+    self.TitleFrame.BorderSizePixel =
+        1
+
+    self.TitleFrame.LayoutOrder =
+        1
+
     self.TitleFrame.Parent =
-        self.ModalFrame
+        self.ContentContainer
 
     --------------------------------------------------------
     -- TITLE LABEL
@@ -273,32 +334,25 @@ function Modal.new(tab, options)
     self.TitleLabel.Size =
         UDim2.new(
             1,
-            -(TITLE_PADDING_X * 2),
-            1,
-            -(TITLE_PADDING_Y * 2)
+            -(PADDING_X * 2),
+            0,
+            0
         )
 
-    self.TitleLabel.Position =
-        UDim2.new(
-            0,
-            TITLE_PADDING_X,
-            0,
-            TITLE_PADDING_Y
-        )
+    self.TitleLabel.AutomaticSize =
+        Enum.AutomaticSize.Y
 
-    self.TitleLabel.BackgroundTransparency = 1
-    self.TitleLabel.RichText = true
-    self.TitleLabel.TextWrapped = true
+    self.TitleLabel.BackgroundTransparency =
+        1
 
     self.TitleLabel.Text =
         self.Title
 
-    self.TitleLabel.TextColor3 =
-        theme.Text
+    self.TitleLabel.RichText =
+        true
 
-    self.TitleLabel.TextSize = 14
-    self.TitleLabel.Font =
-        self.Window.CurrentFont
+    self.TitleLabel.TextWrapped =
+        true
 
     self.TitleLabel.TextXAlignment =
         Enum.TextXAlignment.Left
@@ -306,91 +360,186 @@ function Modal.new(tab, options)
     self.TitleLabel.TextYAlignment =
         Enum.TextYAlignment.Center
 
-    self.TitleLabel.ZIndex = 503
+    self.TitleLabel.TextSize =
+        DEFAULT_TEXT_SIZE
+
+    self.TitleLabel.Font =
+        self.Window.CurrentFont
+
+    self.TitleLabel.TextColor3 =
+        theme.Text
+        or DEFAULT_TEXT_COLOR
+
     self.TitleLabel.Parent =
         self.TitleFrame
 
     --------------------------------------------------------
+    -- TITLE PADDING
+    --------------------------------------------------------
+
+    local titlePadding =
+        Instance.new("UIPadding")
+
+    titlePadding.PaddingTop =
+        UDim.new(
+            0,
+            PADDING_Y
+        )
+
+    titlePadding.PaddingBottom =
+        UDim.new(
+            0,
+            PADDING_Y
+        )
+
+    titlePadding.PaddingLeft =
+        UDim.new(
+            0,
+            PADDING_X
+        )
+
+    titlePadding.PaddingRight =
+        UDim.new(
+            0,
+            PADDING_X
+        )
+
+    titlePadding.Parent =
+        self.TitleFrame
+
+    --------------------------------------------------------
     -- TEXT FRAME
+    --
+    -- Chỉ tạo khi Text tồn tại.
     --------------------------------------------------------
 
-    self.TextFrame =
-        Instance.new("Frame")
+    if self.HasText then
 
-    self.TextFrame.Name =
-        "TextFrame"
+        self.TextFrame =
+            Instance.new("Frame")
 
-    self.TextFrame.Size =
-        UDim2.new(
-            1,
-            0,
-            0,
-            TEXT_MIN_HEIGHT
-        )
+        self.TextFrame.Name =
+            "TextFrame"
 
-    self.TextFrame.BackgroundColor3 =
-        theme.ModalTextFrame
-        or theme.Background
+        self.TextFrame.Size =
+            UDim2.new(
+                1,
+                0,
+                0,
+                0
+            )
 
-    self.TextFrame.BorderColor3 =
-        theme.Border
+        self.TextFrame.AutomaticSize =
+            Enum.AutomaticSize.Y
 
-    self.TextFrame.BorderSizePixel = 1
-    self.TextFrame.ClipsDescendants = true
-    self.TextFrame.LayoutOrder = 2
-    self.TextFrame.ZIndex = 502
-    self.TextFrame.Parent =
-        self.ModalFrame
+        self.TextFrame.BackgroundColor3 =
+            theme.ModalTextFrame
+            or theme.ElementContainer
+            or DEFAULT_TEXT_BACKGROUND
 
-    --------------------------------------------------------
-    -- TEXT LABEL
-    --------------------------------------------------------
+        self.TextFrame.BorderColor3 =
+            theme.Border
+            or Color3.fromRGB(
+                60,
+                60,
+                60
+            )
 
-    self.TextLabel =
-        Instance.new("TextLabel")
+        self.TextFrame.BorderSizePixel =
+            1
 
-    self.TextLabel.Name =
-        "Text"
+        self.TextFrame.LayoutOrder =
+            2
 
-    self.TextLabel.Size =
-        UDim2.new(
-            1,
-            -(TEXT_PADDING_X * 2),
-            1,
-            -(TEXT_PADDING_Y * 2)
-        )
+        self.TextFrame.Parent =
+            self.ContentContainer
 
-    self.TextLabel.Position =
-        UDim2.new(
-            0,
-            TEXT_PADDING_X,
-            0,
-            TEXT_PADDING_Y
-        )
+        ----------------------------------------------------
+        -- TEXT LABEL
+        ----------------------------------------------------
 
-    self.TextLabel.BackgroundTransparency = 1
-    self.TextLabel.RichText = true
-    self.TextLabel.TextWrapped = true
+        self.TextLabel =
+            Instance.new("TextLabel")
 
-    self.TextLabel.Text =
-        self.Text
+        self.TextLabel.Name =
+            "Text"
 
-    self.TextLabel.TextColor3 =
-        theme.Text
+        self.TextLabel.Size =
+            UDim2.new(
+                1,
+                -(PADDING_X * 2),
+                0,
+                0
+            )
 
-    self.TextLabel.TextSize = 13
-    self.TextLabel.Font =
-        self.Window.CurrentFont
+        self.TextLabel.AutomaticSize =
+            Enum.AutomaticSize.Y
 
-    self.TextLabel.TextXAlignment =
-        Enum.TextXAlignment.Left
+        self.TextLabel.BackgroundTransparency =
+            1
 
-    self.TextLabel.TextYAlignment =
-        Enum.TextYAlignment.Center
+        self.TextLabel.Text =
+            self.Text
 
-    self.TextLabel.ZIndex = 503
-    self.TextLabel.Parent =
-        self.TextFrame
+        self.TextLabel.RichText =
+            true
+
+        self.TextLabel.TextWrapped =
+            true
+
+        self.TextLabel.TextXAlignment =
+            Enum.TextXAlignment.Left
+
+        self.TextLabel.TextYAlignment =
+            Enum.TextYAlignment.Center
+
+        self.TextLabel.TextSize =
+            DEFAULT_TEXT_SIZE
+
+        self.TextLabel.Font =
+            self.Window.CurrentFont
+
+        self.TextLabel.TextColor3 =
+            theme.Text
+            or DEFAULT_TEXT_COLOR
+
+        self.TextLabel.Parent =
+            self.TextFrame
+
+        ----------------------------------------------------
+        -- TEXT PADDING
+        ----------------------------------------------------
+
+        local textPadding =
+            Instance.new("UIPadding")
+
+        textPadding.PaddingTop =
+            UDim.new(
+                0,
+                PADDING_Y
+            )
+
+        textPadding.PaddingBottom =
+            UDim.new(
+                0,
+                PADDING_Y
+            )
+
+        textPadding.PaddingLeft =
+            UDim.new(
+                0,
+                PADDING_X
+            )
+
+        textPadding.PaddingRight =
+            UDim.new(
+                0,
+                PADDING_X
+            )
+
+        textPadding.Parent =
+            self.TextFrame
+    end
 
     --------------------------------------------------------
     -- BUTTON FRAME
@@ -414,15 +563,24 @@ function Modal.new(tab, options)
     self.ButtonFrame.BackgroundColor3 =
         theme.ModalButtonFrame
         or theme.Background
+        or DEFAULT_BACKGROUND
 
     self.ButtonFrame.BorderColor3 =
         theme.Border
+        or Color3.fromRGB(
+            60,
+            60,
+            60
+        )
 
-    self.ButtonFrame.BorderSizePixel = 1
-    self.ButtonFrame.LayoutOrder = 3
-    self.ButtonFrame.ZIndex = 502
+    self.ButtonFrame.BorderSizePixel =
+        1
+
+    self.ButtonFrame.LayoutOrder =
+        3
+
     self.ButtonFrame.Parent =
-        self.ModalFrame
+        self.ContentContainer
 
     --------------------------------------------------------
     -- BUTTON PADDING
@@ -430,18 +588,6 @@ function Modal.new(tab, options)
 
     local buttonPadding =
         Instance.new("UIPadding")
-
-    buttonPadding.PaddingLeft =
-        UDim.new(
-            0,
-            BUTTON_PADDING_X
-        )
-
-    buttonPadding.PaddingRight =
-        UDim.new(
-            0,
-            BUTTON_PADDING_X
-        )
 
     buttonPadding.PaddingTop =
         UDim.new(
@@ -453,6 +599,18 @@ function Modal.new(tab, options)
         UDim.new(
             0,
             BUTTON_PADDING_Y
+        )
+
+    buttonPadding.PaddingLeft =
+        UDim.new(
+            0,
+            BUTTON_PADDING_X
+        )
+
+    buttonPadding.PaddingRight =
+        UDim.new(
+            0,
+            BUTTON_PADDING_X
         )
 
     buttonPadding.Parent =
@@ -490,6 +648,35 @@ function Modal.new(tab, options)
         self.ButtonFrame
 
     --------------------------------------------------------
+    -- CONTENT LAYOUT
+    --
+    -- Giống Paragraph:
+    -- Title → Text → Buttons
+    --------------------------------------------------------
+
+    local contentLayout =
+        Instance.new("UIListLayout")
+
+    contentLayout.Name =
+        "ModalLayout"
+
+    contentLayout.FillDirection =
+        Enum.FillDirection.Vertical
+
+    contentLayout.SortOrder =
+        Enum.SortOrder.LayoutOrder
+
+    -- Border overlap 1px
+    contentLayout.Padding =
+        UDim.new(
+            0,
+            -1
+        )
+
+    contentLayout.Parent =
+        self.ContentContainer
+
+    --------------------------------------------------------
     -- BUILD BUTTONS
     --------------------------------------------------------
 
@@ -497,6 +684,9 @@ function Modal.new(tab, options)
 
     --------------------------------------------------------
     -- REGISTER
+    --
+    -- Đăng ký vào Tab.Elements để Window:SetFont()
+    -- và Theme() vẫn propagate xuống Modal.
     --------------------------------------------------------
 
     table.insert(
@@ -505,205 +695,97 @@ function Modal.new(tab, options)
     )
 
     --------------------------------------------------------
-    -- INITIAL BUILD + OPEN ANIMATION
+    -- OPEN ANIMATION
     --------------------------------------------------------
 
-    task.defer(function()
+    task.defer(
+        function()
 
-        if self.Destroyed then
-            return
+            if self.Destroyed then
+                return
+            end
+
+            self:_RefreshButtonSizes()
+
+            local tween =
+                TweenService:Create(
+                    self.UIScale,
+
+                    TweenInfo.new(
+                        ANIMATION_TIME,
+                        Enum.EasingStyle.Back,
+                        Enum.EasingDirection.Out
+                    ),
+
+                    {
+                        Scale = 1
+                    }
+                )
+
+            tween:Play()
+
         end
-
-        self:_PrepareSize()
-
-        local targetSize =
-            UDim2.new(
-                0,
-                MODAL_WIDTH,
-                0,
-                self.TargetHeight
-            )
-
-        self.ModalFrame.Size =
-            UDim2.new(
-                0,
-                40,
-                0,
-                40
-            )
-
-        self.Overlay.BackgroundTransparency =
-            1
-
-        TweenService:Create(
-            self.ModalFrame,
-            TweenInfo.new(
-                ANIMATION_TIME,
-                Enum.EasingStyle.Quad,
-                Enum.EasingDirection.Out
-            ),
-            {
-                Size = targetSize
-            }
-        ):Play()
-
-        TweenService:Create(
-            self.Overlay,
-            TweenInfo.new(
-                ANIMATION_TIME,
-                Enum.EasingStyle.Quad,
-                Enum.EasingDirection.Out
-            ),
-            {
-                BackgroundTransparency =
-                    theme.ModalOverlayTransparency ~= nil
-                    and theme.ModalOverlayTransparency
-                    or 0.45
-            }
-        ):Play()
-
-    end)
+    )
 
     return self
 end
 
 ------------------------------------------------------------
--- MEASURE TITLE
+-- BUTTON SIZE
 ------------------------------------------------------------
 
-function Modal:_MeasureTitle()
-    local width =
-        MODAL_WIDTH
-        - (TITLE_PADDING_X * 2)
+function Modal:_RefreshButtonSizes()
 
-    local font =
-        self.TitleLabel.Font
+    local count =
+        #self.ButtonObjects
 
-    local height =
-        measureText(
-            self.ModalFrame,
-            self.Title,
-            width,
-            self.TitleLabel.TextSize,
-            font,
-            true
-        )
-
-    return math.max(
-        TITLE_MIN_HEIGHT,
-        height
-        + (TITLE_PADDING_Y * 2)
-    )
-end
-
-------------------------------------------------------------
--- MEASURE TEXT
-------------------------------------------------------------
-
-function Modal:_MeasureText()
-    local width =
-        MODAL_WIDTH
-        - (TEXT_PADDING_X * 2)
-
-    local font =
-        self.TextLabel.Font
-
-    local height =
-        measureText(
-            self.ModalFrame,
-            self.Text,
-            width,
-            self.TextLabel.TextSize,
-            font,
-            true
-        )
-
-    return math.max(
-        TEXT_MIN_HEIGHT,
-        height
-        + (TEXT_PADDING_Y * 2)
-    )
-end
-
-------------------------------------------------------------
--- PREPARE SIZE
-------------------------------------------------------------
-
-function Modal:_PrepareSize()
-
-    if self.Destroyed then
+    if count <= 0 then
         return
     end
 
-    local titleHeight =
-        self:_MeasureTitle()
-
-    local textHeight =
-        self:_MeasureText()
+    local availableWidth =
+        self.ModalFrame.AbsoluteSize.X
 
     --------------------------------------------------------
-    -- APPLY FRAME HEIGHTS
+    -- Nếu AbsoluteSize chưa cập nhật, dùng parent width
+    -- hoặc fallback.
     --------------------------------------------------------
 
-    self.TitleFrame.Size =
-        UDim2.new(
-            1,
-            0,
-            0,
-            titleHeight
+    if availableWidth <= 0 then
+        availableWidth = 420
+    end
+
+    local totalGap =
+        BUTTON_GAP
+        * math.max(
+            count - 1,
+            0
         )
 
-    self.TextFrame.Size =
-        UDim2.new(
-            1,
-            0,
-            0,
-            textHeight
-        )
+    local availableButtonWidth =
+        availableWidth
+        - (BUTTON_PADDING_X * 2)
+        - totalGap
 
-    --------------------------------------------------------
-    -- APPLY LABEL SIZES
-    --------------------------------------------------------
+    local buttonWidth =
+        availableButtonWidth
+        / count
 
-    self.TitleLabel.Size =
-        UDim2.new(
-            1,
-            -(TITLE_PADDING_X * 2),
-            1,
-            -(TITLE_PADDING_Y * 2)
-        )
+    for _, button in ipairs(
+        self.ButtonObjects
+    ) do
 
-    self.TextLabel.Size =
-        UDim2.new(
-            1,
-            -(TEXT_PADDING_X * 2),
-            1,
-            -(TEXT_PADDING_Y * 2)
-        )
-
-    --------------------------------------------------------
-    -- BUTTONS
-    --------------------------------------------------------
-
-    self:_RefreshButtonSizes()
-
-    local buttonHeight =
-        BUTTON_HEIGHT
-        + BUTTON_PADDING_Y * 2
-
-    --------------------------------------------------------
-    -- TOTAL
-    --------------------------------------------------------
-
-    self.TargetHeight =
-        math.max(
-            MIN_MODAL_HEIGHT,
-
-            titleHeight
-            + textHeight
-            + buttonHeight
-            - 2
-        )
+        button.Size =
+            UDim2.new(
+                0,
+                math.max(
+                    0,
+                    buttonWidth
+                ),
+                0,
+                BUTTON_HEIGHT
+            )
+    end
 end
 
 ------------------------------------------------------------
@@ -711,15 +793,6 @@ end
 ------------------------------------------------------------
 
 function Modal:_BuildButtons()
-
-    for _, button in ipairs(
-        self.ButtonObjects
-    ) do
-
-        if button then
-            button:Destroy()
-        end
-    end
 
     table.clear(
         self.ButtonObjects
@@ -743,13 +816,22 @@ function Modal:_BuildButtons()
                 or index
             )
 
+        button.Size =
+            UDim2.new(
+                0,
+                0,
+                0,
+                BUTTON_HEIGHT
+            )
+
         button.Text =
             tostring(
                 data.Title
                 or "Button"
             )
 
-        button.TextSize = 13
+        button.TextSize =
+            DEFAULT_TEXT_SIZE
 
         button.Font =
             self.Window.CurrentFont
@@ -758,31 +840,37 @@ function Modal:_BuildButtons()
             data.TextColor
             or self.Window.ThemeData.ModalButtonText
             or self.Window.ThemeData.ButtonText
-            or Color3.fromRGB(
-                255,
-                255,
-                255
-            )
+            or DEFAULT_TEXT_COLOR
 
         button.BackgroundColor3 =
             data.Color
             or self.Window.ThemeData.ModalButton
             or self.Window.ThemeData.Button
-            or Color3.fromRGB(
-                40,
-                90,
-                175
-            )
+            or DEFAULT_BUTTON_BACKGROUND
 
         button.BorderColor3 =
             data.BorderColor
             or self.Window.ThemeData.Border
+            or Color3.fromRGB(
+                60,
+                60,
+                60
+            )
 
-        button.BorderSizePixel = 1
-        button.AutoButtonColor = false
-        button.LayoutOrder = index
-        button.ZIndex = 503
-        button.Parent = self.ButtonFrame
+        button.BorderSizePixel =
+            1
+
+        button.AutoButtonColor =
+            false
+
+        button.LayoutOrder =
+            index
+
+        button.ZIndex =
+            503
+
+        button.Parent =
+            self.ButtonFrame
 
         table.insert(
             self.ButtonObjects,
@@ -804,11 +892,7 @@ function Modal:_BuildButtons()
                     data.HighlightColor
                     or self.Window.ThemeData.ModalButtonHighlight
                     or self.Window.ThemeData.ButtonHighlight
-                    or Color3.fromRGB(
-                        60,
-                        110,
-                        220
-                    )
+                    or DEFAULT_BUTTON_HIGHLIGHT
             end
         )
 
@@ -823,11 +907,7 @@ function Modal:_BuildButtons()
                     data.Color
                     or self.Window.ThemeData.ModalButton
                     or self.Window.ThemeData.Button
-                    or Color3.fromRGB(
-                        40,
-                        90,
-                        175
-                    )
+                    or DEFAULT_BUTTON_BACKGROUND
             end
         )
 
@@ -844,7 +924,7 @@ function Modal:_BuildButtons()
 
                 local callback =
                     type(data.Callback)
-                        == "function"
+                    == "function"
                     and data.Callback
                     or nil
 
@@ -866,61 +946,16 @@ function Modal:_BuildButtons()
                                 err
                             )
                         end
+
                     end
                 )
             end
         )
     end
-
-    self:_RefreshButtonSizes()
 end
 
 ------------------------------------------------------------
--- BUTTON SIZE
-------------------------------------------------------------
-
-function Modal:_RefreshButtonSizes()
-
-    local count =
-        #self.ButtonObjects
-
-    if count == 0 then
-        return
-    end
-
-    local availableWidth =
-        MODAL_WIDTH
-        - (BUTTON_PADDING_X * 2)
-
-    local totalGap =
-        BUTTON_GAP
-        * math.max(
-            count - 1,
-            0
-        )
-
-    local buttonWidth =
-        (
-            availableWidth
-            - totalGap
-        ) / count
-
-    for _, button in ipairs(
-        self.ButtonObjects
-    ) do
-
-        button.Size =
-            UDim2.new(
-                0,
-                buttonWidth,
-                0,
-                BUTTON_HEIGHT
-            )
-    end
-end
-
-------------------------------------------------------------
--- SET FONT
+-- FONT
 ------------------------------------------------------------
 
 function Modal:SetFont(fontType)
@@ -934,10 +969,12 @@ function Modal:SetFont(fontType)
         fontType
     )
 
-    setFont(
-        self.TextLabel,
-        fontType
-    )
+    if self.TextLabel then
+        setFont(
+            self.TextLabel,
+            fontType
+        )
+    end
 
     for _, button in ipairs(
         self.ButtonObjects
@@ -947,17 +984,12 @@ function Modal:SetFont(fontType)
             button,
             fontType
         )
+
     end
-
-    --------------------------------------------------------
-    -- Font can change TextBounds.
-    --------------------------------------------------------
-
-    self:_PrepareSize()
 end
 
 ------------------------------------------------------------
--- UPDATE THEME
+-- THEME
 ------------------------------------------------------------
 
 function Modal:UpdateTheme(theme)
@@ -978,6 +1010,11 @@ function Modal:UpdateTheme(theme)
             0
         )
 
+    self.Overlay.BackgroundTransparency =
+        theme.ModalOverlayTransparency ~= nil
+        and theme.ModalOverlayTransparency
+        or 0.45
+
     --------------------------------------------------------
     -- MODAL
     --------------------------------------------------------
@@ -985,9 +1022,15 @@ function Modal:UpdateTheme(theme)
     self.ModalFrame.BackgroundColor3 =
         theme.ModalFrame
         or theme.Background
+        or DEFAULT_BACKGROUND
 
     self.ModalFrame.BorderColor3 =
         theme.Border
+        or Color3.fromRGB(
+            60,
+            60,
+            60
+        )
 
     --------------------------------------------------------
     -- TITLE
@@ -996,26 +1039,38 @@ function Modal:UpdateTheme(theme)
     self.TitleFrame.BackgroundColor3 =
         theme.ModalTitleFrame
         or theme.Background
+        or DEFAULT_TITLE_BACKGROUND
 
     self.TitleFrame.BorderColor3 =
         theme.Border
 
     self.TitleLabel.TextColor3 =
         theme.Text
+        or DEFAULT_TEXT_COLOR
 
     --------------------------------------------------------
     -- TEXT
     --------------------------------------------------------
 
-    self.TextFrame.BackgroundColor3 =
-        theme.ModalTextFrame
-        or theme.Background
+    if self.TextFrame then
 
-    self.TextFrame.BorderColor3 =
-        theme.Border
+        self.TextFrame.BackgroundColor3 =
+            theme.ModalTextFrame
+            or theme.ElementContainer
+            or DEFAULT_TEXT_BACKGROUND
 
-    self.TextLabel.TextColor3 =
-        theme.Text
+        self.TextFrame.BorderColor3 =
+            theme.Border
+
+    end
+
+    if self.TextLabel then
+
+        self.TextLabel.TextColor3 =
+            theme.Text
+            or DEFAULT_TEXT_COLOR
+
+    end
 
     --------------------------------------------------------
     -- BUTTON FRAME
@@ -1024,6 +1079,7 @@ function Modal:UpdateTheme(theme)
     self.ButtonFrame.BackgroundColor3 =
         theme.ModalButtonFrame
         or theme.Background
+        or DEFAULT_BACKGROUND
 
     self.ButtonFrame.BorderColor3 =
         theme.Border
@@ -1044,30 +1100,29 @@ function Modal:UpdateTheme(theme)
             data.TextColor
             or theme.ModalButtonText
             or theme.ButtonText
-            or Color3.fromRGB(
-                255,
-                255,
-                255
-            )
+            or DEFAULT_TEXT_COLOR
 
         button.BackgroundColor3 =
             data.Color
             or theme.ModalButton
             or theme.Button
+            or DEFAULT_BUTTON_BACKGROUND
 
         button.BorderColor3 =
             data.BorderColor
             or theme.Border
 
-        setFont(
-            button,
-            self.Window.CurrentFont
-        )
     end
+
+    --------------------------------------------------------
+    -- FONT
+    --------------------------------------------------------
 
     self:SetFont(
         self.Window.CurrentFont
     )
+
+    self:_RefreshButtonSizes()
 end
 
 ------------------------------------------------------------
@@ -1087,51 +1142,47 @@ function Modal:Close()
     self.Opened = false
 
     --------------------------------------------------------
-    -- FADE
+    -- SCALE DOWN
     --------------------------------------------------------
 
-    TweenService:Create(
-        self.Overlay,
-
-        TweenInfo.new(
-            ANIMATION_TIME,
-            Enum.EasingStyle.Quad,
-            Enum.EasingDirection.Out
-        ),
-
-        {
-            BackgroundTransparency = 1
-        }
-    ):Play()
-
-    --------------------------------------------------------
-    -- SHRINK
-    --------------------------------------------------------
-
-    local frameTween =
+    local scaleTween =
         TweenService:Create(
-            self.ModalFrame,
+            self.UIScale,
 
             TweenInfo.new(
                 ANIMATION_TIME,
                 Enum.EasingStyle.Quad,
-                Enum.EasingDirection.Out
+                Enum.EasingDirection.In
             ),
 
             {
-                Size =
-                    UDim2.new(
-                        0,
-                        40,
-                        0,
-                        40
-                    )
+                Scale = 0
             }
         )
 
-    frameTween:Play()
+    --------------------------------------------------------
+    -- OVERLAY
+    --------------------------------------------------------
 
-    frameTween.Completed:Connect(
+    local overlayTween =
+        TweenService:Create(
+            self.Overlay,
+
+            TweenInfo.new(
+                ANIMATION_TIME,
+                Enum.EasingStyle.Quad,
+                Enum.EasingDirection.In
+            ),
+
+            {
+                BackgroundTransparency = 1
+            }
+        )
+
+    scaleTween:Play()
+    overlayTween:Play()
+
+    scaleTween.Completed:Connect(
         function()
 
             if self.Destroyed then
@@ -1141,6 +1192,7 @@ function Modal:Close()
             if not self.Opened then
                 self:Destroy()
             end
+
         end
     )
 end
@@ -1159,14 +1211,29 @@ function Modal:Destroy()
     self.Opened = false
 
     if self.Overlay then
+
         self.Overlay:Destroy()
         self.Overlay = nil
+
     end
 
     self.ModalFrame = nil
+    self.UIScale = nil
+    self.ContentContainer = nil
     self.TitleFrame = nil
     self.TextFrame = nil
     self.ButtonFrame = nil
+
+    self.TitleLabel = nil
+    self.TextLabel = nil
+
+    table.clear(
+        self.ButtonObjects
+    )
+
+    --------------------------------------------------------
+    -- REMOVE FROM TAB
+    --------------------------------------------------------
 
     for i, element in ipairs(
         self.Tab.Elements
