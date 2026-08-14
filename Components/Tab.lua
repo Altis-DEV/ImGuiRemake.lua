@@ -558,6 +558,26 @@ function Tab:Modal(options)
     )
 end
 
+function Tab:Color(options)
+    if self.Destroyed then
+        return nil
+    end
+
+    if not self.Window.ColorModule then
+        warn(
+            "ColorModule chưa được load " ..
+            "(Kiểm tra lại file init.lua)!"
+        )
+
+        return nil
+    end
+
+    return self.Window.ColorModule.new(
+        self,
+        options or {}
+    )
+end
+
 ----------------------------------------------------------------
 -- SELECT
 ----------------------------------------------------------------
