@@ -27,6 +27,17 @@ function Button.new(tab, options)
         and options.Callback
         or function() end
 
+    ------------------------------------------------------------
+    -- CUSTOM COLORS
+    --
+    -- Nếu nil:
+    --   Color          -> theme.Button
+    --   HighlightColor -> theme.ButtonHighlight
+    ------------------------------------------------------------
+
+    self.Color = options.Color
+    self.HighlightColor = options.HighlightColor
+
     self.Destroyed = false
 
     local theme = self.Window.ThemeData
@@ -45,15 +56,13 @@ function Button.new(tab, options)
 
     self.Instance.TextColor3 =
         theme.ButtonText
-        or Color3.fromRGB(255, 255, 255)
 
     self.Instance.BackgroundColor3 =
-        theme.Button
-        or Color3.fromRGB(40, 90, 175)
+        self.Color
+        or theme.Button
 
     self.Instance.BorderColor3 =
         theme.Border
-        or Color3.fromRGB(60, 60, 60)
 
     self.Instance.BorderSizePixel = 1
     self.Instance.TextSize = 13
@@ -67,7 +76,6 @@ function Button.new(tab, options)
 
         -- Full width của parent hiện tại.
         --
-        -- Quan trọng:
         -- Section đã có UIPadding bên trong
         -- ElementContainer, nên không cần -12.
         self.Instance.Size =
@@ -149,12 +157,8 @@ function Button.new(tab, options)
                 TweenInfo.new(0.2),
                 {
                     BackgroundColor3 =
-                        self.Window.ThemeData.ButtonHighlight
-                        or Color3.fromRGB(
-                            60,
-                            110,
-                            220
-                        )
+                        self.HighlightColor
+                        or self.Window.ThemeData.ButtonHighlight
                 }
             ):Play()
         end
@@ -176,12 +180,8 @@ function Button.new(tab, options)
                 TweenInfo.new(0.2),
                 {
                     BackgroundColor3 =
-                        self.Window.ThemeData.Button
-                        or Color3.fromRGB(
-                            40,
-                            90,
-                            175
-                        )
+                        self.Color
+                        or self.Window.ThemeData.Button
                 }
             ):Play()
         end
@@ -199,12 +199,8 @@ function Button.new(tab, options)
             end
 
             self.Instance.BackgroundColor3 =
-                self.Window.ThemeData.ButtonHighlight
-                or Color3.fromRGB(
-                    60,
-                    110,
-                    220
-                )
+                self.HighlightColor
+                or self.Window.ThemeData.ButtonHighlight
         end
     )
 
@@ -220,12 +216,8 @@ function Button.new(tab, options)
             end
 
             self.Instance.BackgroundColor3 =
-                self.Window.ThemeData.Button
-                or Color3.fromRGB(
-                    40,
-                    90,
-                    175
-                )
+                self.Color
+                or self.Window.ThemeData.Button
         end
     )
 
@@ -371,29 +363,33 @@ function Button:UpdateTheme(theme)
         return
     end
 
+    ------------------------------------------------------------
+    -- TEXT
+    ------------------------------------------------------------
+
     self.Instance.TextColor3 =
         theme.ButtonText
-        or Color3.fromRGB(
-            255,
-            255,
-            255
-        )
+
+    ------------------------------------------------------------
+    -- BACKGROUND
+    --
+    -- Custom Color được giữ nguyên.
+    ------------------------------------------------------------
 
     self.Instance.BackgroundColor3 =
-        theme.Button
-        or Color3.fromRGB(
-            40,
-            90,
-            175
-        )
+        self.Color
+        or theme.Button
+
+    ------------------------------------------------------------
+    -- BORDER
+    ------------------------------------------------------------
 
     self.Instance.BorderColor3 =
         theme.Border
-        or Color3.fromRGB(
-            60,
-            60,
-            60
-        )
+
+    ------------------------------------------------------------
+    -- FONT
+    ------------------------------------------------------------
 
     self:SetFont(
         self.Window.CurrentFont
