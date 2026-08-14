@@ -18,24 +18,6 @@ local BUTTON_GAP = 5
 
 local ANIMATION_TIME = 0.22
 
-local DEFAULT_BACKGROUND =
-    Color3.fromRGB(22, 22, 22)
-
-local DEFAULT_TITLE_BACKGROUND =
-    Color3.fromRGB(32, 32, 32)
-
-local DEFAULT_TEXT_BACKGROUND =
-    Color3.fromRGB(26, 26, 26)
-
-local DEFAULT_BUTTON_BACKGROUND =
-    Color3.fromRGB(40, 90, 175)
-
-local DEFAULT_BUTTON_HIGHLIGHT =
-    Color3.fromRGB(60, 110, 220)
-
-local DEFAULT_TEXT_COLOR =
-    Color3.fromRGB(255, 255, 255)
-
 ------------------------------------------------------------
 -- FONT
 ------------------------------------------------------------
@@ -53,10 +35,9 @@ local function setFont(instance, fontType)
             true
         ) then
 
-        local ok, customFont =
-            pcall(function()
-                return Font.new(fontType)
-            end)
+        local ok, customFont = pcall(function()
+            return Font.new(fontType)
+        end)
 
         if ok and customFont then
             instance.FontFace = customFont
@@ -87,7 +68,10 @@ function Modal.new(tab, options)
     end
 
     local self =
-        setmetatable({}, Modal)
+        setmetatable(
+            {},
+            Modal
+        )
 
     self.Tab = tab
     self.Window = tab.Window
@@ -143,16 +127,9 @@ function Modal.new(tab, options)
 
     self.Overlay.BackgroundColor3 =
         theme.ModalOverlay
-        or Color3.fromRGB(
-            0,
-            0,
-            0
-        )
 
     self.Overlay.BackgroundTransparency =
-        theme.ModalOverlayTransparency ~= nil
-        and theme.ModalOverlayTransparency
-        or 0.45
+        theme.ModalOverlayTransparency
 
     self.Overlay.BorderSizePixel =
         0
@@ -165,9 +142,6 @@ function Modal.new(tab, options)
 
     ------------------------------------------------------------
     -- MODAL FRAME
-    --
-    -- X FIXED
-    -- Y AUTOMATIC
     ------------------------------------------------------------
 
     self.ModalFrame =
@@ -203,16 +177,9 @@ function Modal.new(tab, options)
 
     self.ModalFrame.BackgroundColor3 =
         theme.ModalFrame
-        or theme.Background
-        or DEFAULT_BACKGROUND
 
     self.ModalFrame.BorderColor3 =
         theme.Border
-        or Color3.fromRGB(
-            60,
-            60,
-            60
-        )
 
     self.ModalFrame.BorderSizePixel =
         1
@@ -295,16 +262,9 @@ function Modal.new(tab, options)
 
     self.TitleFrame.BackgroundColor3 =
         theme.ModalTitleFrame
-        or theme.Background
-        or DEFAULT_TITLE_BACKGROUND
 
     self.TitleFrame.BorderColor3 =
         theme.Border
-        or Color3.fromRGB(
-            60,
-            60,
-            60
-        )
 
     self.TitleFrame.BorderSizePixel =
         1
@@ -362,7 +322,6 @@ function Modal.new(tab, options)
 
     self.TitleLabel.TextColor3 =
         theme.Text
-        or DEFAULT_TEXT_COLOR
 
     self.TitleLabel.Parent =
         self.TitleFrame
@@ -426,16 +385,9 @@ function Modal.new(tab, options)
 
         self.TextFrame.BackgroundColor3 =
             theme.ModalTextFrame
-            or theme.ElementContainer
-            or DEFAULT_TEXT_BACKGROUND
 
         self.TextFrame.BorderColor3 =
             theme.Border
-            or Color3.fromRGB(
-                60,
-                60,
-                60
-            )
 
         self.TextFrame.BorderSizePixel =
             1
@@ -493,7 +445,6 @@ function Modal.new(tab, options)
 
         self.TextLabel.TextColor3 =
             theme.Text
-            or DEFAULT_TEXT_COLOR
 
         self.TextLabel.Parent =
             self.TextFrame
@@ -554,16 +505,9 @@ function Modal.new(tab, options)
 
     self.ButtonFrame.BackgroundColor3 =
         theme.ModalButtonFrame
-        or theme.Background
-        or DEFAULT_BACKGROUND
 
     self.ButtonFrame.BorderColor3 =
         theme.Border
-        or Color3.fromRGB(
-            60,
-            60,
-            60
-        )
 
     self.ButtonFrame.BorderSizePixel =
         1
@@ -655,7 +599,6 @@ function Modal.new(tab, options)
     contentLayout.SortOrder =
         Enum.SortOrder.LayoutOrder
 
-    -- Border overlap
     contentLayout.Padding =
         UDim.new(
             0,
@@ -681,46 +624,33 @@ function Modal.new(tab, options)
     )
 
     ------------------------------------------------------------
-    -- BUTTON WIDTH UPDATE
-    ------------------------------------------------------------
-
-    self.Window.ScreenGui:GetPropertyChangedSignal(
-        "AbsoluteSize"
-    ):Connect(function()
-
-        if self.Destroyed then
-            return
-        end
-
-        self:_RefreshButtonSizes()
-    end)
-
-    ------------------------------------------------------------
     -- OPEN ANIMATION
     ------------------------------------------------------------
 
-    task.defer(function()
+    task.defer(
+        function()
 
-        if self.Destroyed then
-            return
+            if self.Destroyed then
+                return
+            end
+
+            self:_RefreshButtonSizes()
+
+            TweenService:Create(
+                self.UIScale,
+
+                TweenInfo.new(
+                    ANIMATION_TIME,
+                    Enum.EasingStyle.Back,
+                    Enum.EasingDirection.Out
+                ),
+
+                {
+                    Scale = 1
+                }
+            ):Play()
         end
-
-        self:_RefreshButtonSizes()
-
-        TweenService:Create(
-            self.UIScale,
-
-            TweenInfo.new(
-                ANIMATION_TIME,
-                Enum.EasingStyle.Back,
-                Enum.EasingDirection.Out
-            ),
-
-            {
-                Scale = 1
-            }
-        ):Play()
-    end)
+    )
 
     return self
 end
@@ -741,11 +671,6 @@ function Modal:_RefreshButtonSizes()
     if count <= 0 then
         return
     end
-
-    --------------------------------------------------------
-    -- IMPORTANT:
-    -- Modal width is FIXED at MODAL_WIDTH.
-    --------------------------------------------------------
 
     local totalGap =
         BUTTON_GAP
@@ -839,23 +764,14 @@ function Modal:_BuildButtons()
         button.TextColor3 =
             data.TextColor
             or self.Window.ThemeData.ModalButtonText
-            or self.Window.ThemeData.ButtonText
-            or DEFAULT_TEXT_COLOR
 
         button.BackgroundColor3 =
             data.Color
             or self.Window.ThemeData.ModalButton
-            or self.Window.ThemeData.Button
-            or DEFAULT_BUTTON_BACKGROUND
 
         button.BorderColor3 =
             data.BorderColor
             or self.Window.ThemeData.Border
-            or Color3.fromRGB(
-                60,
-                60,
-                60
-            )
 
         button.BorderSizePixel =
             1
@@ -891,8 +807,6 @@ function Modal:_BuildButtons()
                 button.BackgroundColor3 =
                     data.HighlightColor
                     or self.Window.ThemeData.ModalButtonHighlight
-                    or self.Window.ThemeData.ButtonHighlight
-                    or DEFAULT_BUTTON_HIGHLIGHT
             end
         )
 
@@ -906,8 +820,6 @@ function Modal:_BuildButtons()
                 button.BackgroundColor3 =
                     data.Color
                     or self.Window.ThemeData.ModalButton
-                    or self.Window.ThemeData.Button
-                    or DEFAULT_BUTTON_BACKGROUND
             end
         )
 
@@ -978,7 +890,6 @@ function Modal:SetFont(fontType)
     for _, button in ipairs(
         self.ButtonObjects
     ) do
-
         setFont(
             button,
             fontType
@@ -1002,16 +913,9 @@ function Modal:UpdateTheme(theme)
 
     self.Overlay.BackgroundColor3 =
         theme.ModalOverlay
-        or Color3.fromRGB(
-            0,
-            0,
-            0
-        )
 
     self.Overlay.BackgroundTransparency =
-        theme.ModalOverlayTransparency ~= nil
-        and theme.ModalOverlayTransparency
-        or 0.45
+        theme.ModalOverlayTransparency
 
     --------------------------------------------------------
     -- MODAL
@@ -1019,8 +923,6 @@ function Modal:UpdateTheme(theme)
 
     self.ModalFrame.BackgroundColor3 =
         theme.ModalFrame
-        or theme.Background
-        or DEFAULT_BACKGROUND
 
     self.ModalFrame.BorderColor3 =
         theme.Border
@@ -1031,15 +933,12 @@ function Modal:UpdateTheme(theme)
 
     self.TitleFrame.BackgroundColor3 =
         theme.ModalTitleFrame
-        or theme.Background
-        or DEFAULT_TITLE_BACKGROUND
 
     self.TitleFrame.BorderColor3 =
         theme.Border
 
     self.TitleLabel.TextColor3 =
         theme.Text
-        or DEFAULT_TEXT_COLOR
 
     --------------------------------------------------------
     -- TEXT
@@ -1049,8 +948,6 @@ function Modal:UpdateTheme(theme)
 
         self.TextFrame.BackgroundColor3 =
             theme.ModalTextFrame
-            or theme.ElementContainer
-            or DEFAULT_TEXT_BACKGROUND
 
         self.TextFrame.BorderColor3 =
             theme.Border
@@ -1061,7 +958,6 @@ function Modal:UpdateTheme(theme)
 
         self.TextLabel.TextColor3 =
             theme.Text
-            or DEFAULT_TEXT_COLOR
     end
 
     --------------------------------------------------------
@@ -1070,8 +966,6 @@ function Modal:UpdateTheme(theme)
 
     self.ButtonFrame.BackgroundColor3 =
         theme.ModalButtonFrame
-        or theme.Background
-        or DEFAULT_BACKGROUND
 
     self.ButtonFrame.BorderColor3 =
         theme.Border
@@ -1091,19 +985,19 @@ function Modal:UpdateTheme(theme)
         button.TextColor3 =
             data.TextColor
             or theme.ModalButtonText
-            or theme.ButtonText
-            or DEFAULT_TEXT_COLOR
 
         button.BackgroundColor3 =
             data.Color
             or theme.ModalButton
-            or theme.Button
-            or DEFAULT_BUTTON_BACKGROUND
 
         button.BorderColor3 =
             data.BorderColor
             or theme.Border
     end
+
+    --------------------------------------------------------
+    -- FONT
+    --------------------------------------------------------
 
     self:SetFont(
         self.Window.CurrentFont
@@ -1128,10 +1022,6 @@ function Modal:Close()
 
     self.Opened = false
 
-    --------------------------------------------------------
-    -- SCALE DOWN
-    --------------------------------------------------------
-
     local scaleTween =
         TweenService:Create(
             self.UIScale,
@@ -1146,10 +1036,6 @@ function Modal:Close()
                 Scale = 0
             }
         )
-
-    --------------------------------------------------------
-    -- OVERLAY
-    --------------------------------------------------------
 
     local overlayTween =
         TweenService:Create(
@@ -1200,7 +1086,6 @@ function Modal:Destroy()
 
         self.Overlay:Destroy()
         self.Overlay = nil
-
     end
 
     self.ModalFrame = nil
