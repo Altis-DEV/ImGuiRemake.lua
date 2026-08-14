@@ -19,15 +19,20 @@ local function getElementInstance(element)
         return nil
     end
 
-    -- Button
+    --------------------------------------------------------
+    -- BUTTON
+    --------------------------------------------------------
+
     if element.Instance
         and element.Instance:IsA("GuiObject") then
 
         return element.Instance
     end
 
-    -- Toggle / Paragraph / TextBox / Slider / Dropdown /
-    -- Label / Image / Section / Row
+    --------------------------------------------------------
+    -- COMMON CONTAINER ELEMENTS
+    --------------------------------------------------------
+
     if element.Container
         and element.Container:IsA("GuiObject") then
 
@@ -45,7 +50,11 @@ function Row.new(parent, options)
 
     options = options or {}
 
-    local self = setmetatable({}, Row)
+    local self =
+        setmetatable(
+            {},
+            Row
+        )
 
     self.Parent = parent
     self.Window = parent.Window
@@ -59,9 +68,11 @@ function Row.new(parent, options)
     -- ROW CONTAINER
     --------------------------------------------------------
 
-    self.Container = Instance.new("Frame")
+    self.Container =
+        Instance.new("Frame")
 
-    self.Container.Name = "Row"
+    self.Container.Name =
+        "Row"
 
     self.Container.Size =
         UDim2.new(
@@ -74,8 +85,11 @@ function Row.new(parent, options)
     self.Container.AutomaticSize =
         Enum.AutomaticSize.Y
 
-    self.Container.BackgroundTransparency = 1
-    self.Container.BorderSizePixel = 0
+    self.Container.BackgroundTransparency =
+        1
+
+    self.Container.BorderSizePixel =
+        0
 
     self.Container.Parent =
         parent.ContentFrame
@@ -84,7 +98,8 @@ function Row.new(parent, options)
     -- CONTENT
     --------------------------------------------------------
 
-    self.ContentFrame = Instance.new("Frame")
+    self.ContentFrame =
+        Instance.new("Frame")
 
     self.ContentFrame.Name =
         "ContentFrame"
@@ -100,8 +115,11 @@ function Row.new(parent, options)
     self.ContentFrame.AutomaticSize =
         Enum.AutomaticSize.Y
 
-    self.ContentFrame.BackgroundTransparency = 1
-    self.ContentFrame.BorderSizePixel = 0
+    self.ContentFrame.BackgroundTransparency =
+        1
+
+    self.ContentFrame.BorderSizePixel =
+        0
 
     self.ContentFrame.Parent =
         self.Container
@@ -151,12 +169,11 @@ function Row.new(parent, options)
             end
 
             self:_RefreshHeight()
-
         end
     )
 
     --------------------------------------------------------
-    -- REGISTER ROW AS ONE ELEMENT
+    -- REGISTER ROW
     --------------------------------------------------------
 
     table.insert(
@@ -177,8 +194,10 @@ function Row:_CreateCell()
         Instance.new("Frame")
 
     cell.Name =
-        "Cell_" ..
-        tostring(#self.Cells + 1)
+        "Cell_"
+        .. tostring(
+            #self.Cells + 1
+        )
 
     cell.BackgroundTransparency =
         1
@@ -214,17 +233,18 @@ function Row:_RefreshCellSizes()
     end
 
     --------------------------------------------------------
-    -- Total width consumed by gaps
+    -- TOTAL GAP
     --------------------------------------------------------
 
     local totalGap =
-        GAP * math.max(
+        GAP
+        * math.max(
             count - 1,
             0
         )
 
     --------------------------------------------------------
-    -- Each cell gets equal width
+    -- EQUAL CELL WIDTH
     --------------------------------------------------------
 
     local scale =
@@ -238,7 +258,8 @@ function Row:_RefreshCellSizes()
             UDim2.new(
                 scale,
                 -(
-                    totalGap * scale
+                    totalGap
+                    * scale
                 ),
                 0,
                 0
@@ -250,13 +271,175 @@ function Row:_RefreshCellSizes()
 end
 
 ------------------------------------------------------------
+-- APPLY ROW WIDTH TO ELEMENT
+------------------------------------------------------------
+
+function Row:_ApplyElementLayout(
+    element,
+    instance
+)
+
+    if not element
+        or not instance then
+
+        return
+    end
+
+    --------------------------------------------------------
+    -- MARK ELEMENT AS BEING INSIDE ROW
+    --------------------------------------------------------
+
+    element._InRow =
+        true
+
+    --------------------------------------------------------
+    -- BUTTON
+    --
+    -- Button.Instance itself is the control.
+    --------------------------------------------------------
+
+    if element.Instance == instance then
+
+        instance.Size =
+            UDim2.new(
+                1,
+                0,
+                instance.Size.Y.Scale,
+                instance.Size.Y.Offset
+            )
+
+        instance.AutomaticSize =
+            Enum.AutomaticSize.Y
+
+        return
+    end
+
+    --------------------------------------------------------
+    -- SLIDER
+    --------------------------------------------------------
+
+    if element.SliderFrame then
+
+        ----------------------------------------------------
+        -- No title:
+        -- SliderFrame becomes full width of the cell.
+        ----------------------------------------------------
+
+        if not element.TitleLabel then
+
+            element.SliderFrame.Size =
+                UDim2.new(
+                    1,
+                    0,
+                    1,
+                    0
+                )
+
+        else
+
+            ------------------------------------------------
+            -- Title exists:
+            -- keep existing 50/50 layout.
+            ------------------------------------------------
+
+            element.SliderFrame.Size =
+                UDim2.new(
+                    0.5,
+                    0,
+                    1,
+                    0
+                )
+        end
+
+        return
+    end
+
+    --------------------------------------------------------
+    -- DROPDOWN
+    --------------------------------------------------------
+
+    if element.DropdownFrame then
+
+        if not element.TitleLabel then
+
+            element.DropdownFrame.Size =
+                UDim2.new(
+                    1,
+                    0,
+                    0,
+                    30
+                )
+
+            ------------------------------------------------
+            -- Options follow the actual control width.
+            ------------------------------------------------
+
+            if element.OptionsFrame then
+
+                element.OptionsFrame.Size =
+                    UDim2.new(
+                        1,
+                        0,
+                        0,
+                        element.OptionsFrame.Size.Y.Offset
+                    )
+            end
+
+        else
+
+            element.DropdownFrame.Size =
+                UDim2.new(
+                    0.5,
+                    0,
+                    0,
+                    30
+                )
+        end
+
+        return
+    end
+
+    --------------------------------------------------------
+    -- TEXTBOX
+    --------------------------------------------------------
+
+    if element.TextBoxFrame then
+
+        if not element.TitleLabel then
+
+            element.TextBoxFrame.Size =
+                UDim2.new(
+                    1,
+                    0,
+                    0,
+                    30
+                )
+
+        else
+
+            element.TextBoxFrame.Size =
+                UDim2.new(
+                    0.5,
+                    0,
+                    0,
+                    30
+                )
+        end
+
+        return
+    end
+end
+
+------------------------------------------------------------
 -- PREPARE ELEMENT FOR ROW
 ------------------------------------------------------------
 
 function Row:_AttachElement(element)
 
     local instance =
-        getElementInstance(element)
+        getElementInstance(
+            element
+        )
 
     if not instance then
         return false
@@ -270,18 +453,11 @@ function Row:_AttachElement(element)
         self:_CreateCell()
 
     --------------------------------------------------------
-    -- MOVE ELEMENT INTO CELL
+    -- MOVE ELEMENT
     --------------------------------------------------------
 
     instance.Parent =
         cell
-
-    --------------------------------------------------------
-    -- IMPORTANT:
-    --
-    -- Row controls horizontal size.
-    -- Element controls its own vertical size.
-    --------------------------------------------------------
 
     instance.Position =
         UDim2.new(
@@ -290,6 +466,10 @@ function Row:_AttachElement(element)
             0,
             0
         )
+
+    --------------------------------------------------------
+    -- ROOT INSTANCE ALWAYS FILLS CELL
+    --------------------------------------------------------
 
     instance.Size =
         UDim2.new(
@@ -300,8 +480,7 @@ function Row:_AttachElement(element)
         )
 
     --------------------------------------------------------
-    -- Disable horizontal AutomaticSize
-    -- because Cell now controls width.
+    -- DISABLE HORIZONTAL AUTOMATIC SIZE
     --------------------------------------------------------
 
     if instance:IsA("GuiObject") then
@@ -313,10 +492,21 @@ function Row:_AttachElement(element)
 
             instance.AutomaticSize =
                 Enum.AutomaticSize.Y
-
         end
-
     end
+
+    --------------------------------------------------------
+    -- APPLY ELEMENT-SPECIFIC ROW LAYOUT
+    --------------------------------------------------------
+
+    self:_ApplyElementLayout(
+        element,
+        instance
+    )
+
+    --------------------------------------------------------
+    -- REFRESH CELLS
+    --------------------------------------------------------
 
     self:_RefreshCellSizes()
 
@@ -376,6 +566,7 @@ end
 function Row:Button(options)
 
     if not self.Window.ButtonModule then
+
         warn(
             "ButtonModule chưa được load!"
         )
@@ -403,6 +594,7 @@ end
 function Row:Toggle(options)
 
     if not self.Window.ToggleModule then
+
         warn(
             "ToggleModule chưa được load!"
         )
@@ -430,6 +622,7 @@ end
 function Row:Slider(options)
 
     if not self.Window.SliderModule then
+
         warn(
             "SliderModule chưa được load!"
         )
@@ -457,6 +650,7 @@ end
 function Row:Dropdown(options)
 
     if not self.Window.DropdownModule then
+
         warn(
             "DropdownModule chưa được load!"
         )
@@ -484,6 +678,7 @@ end
 function Row:TextBox(options)
 
     if not self.Window.TextBoxModule then
+
         warn(
             "TextBoxModule chưa được load!"
         )
@@ -511,6 +706,7 @@ end
 function Row:Paragraph(options)
 
     if not self.Window.ParagraphModule then
+
         warn(
             "ParagraphModule chưa được load!"
         )
@@ -538,6 +734,7 @@ end
 function Row:Label(options)
 
     if not self.Window.LabelModule then
+
         warn(
             "LabelModule chưa được load!"
         )
@@ -565,6 +762,7 @@ end
 function Row:Divider(options)
 
     if not self.Window.DividerModule then
+
         warn(
             "DividerModule chưa được load!"
         )
@@ -592,6 +790,7 @@ end
 function Row:Image(options)
 
     if not self.Window.ImageModule then
+
         warn(
             "ImageModule chưa được load!"
         )
@@ -619,6 +818,7 @@ end
 function Row:Row(options)
 
     if not self.Window.RowModule then
+
         warn(
             "RowModule chưa được load!"
         )
@@ -654,11 +854,11 @@ function Row:UpdateTheme(theme)
     ) do
 
         if element.UpdateTheme then
+
             element:UpdateTheme(
                 theme
             )
         end
-
     end
 end
 
@@ -677,11 +877,11 @@ function Row:SetFont(fontType)
     ) do
 
         if element.SetFont then
+
             element:SetFont(
                 fontType
             )
         end
-
     end
 end
 
@@ -698,7 +898,7 @@ function Row:Destroy()
     self.Destroyed = true
 
     --------------------------------------------------------
-    -- Destroy children
+    -- DESTROY CHILDREN
     --------------------------------------------------------
 
     for i = #self.Elements, 1, -1 do
@@ -710,7 +910,6 @@ function Row:Destroy()
             and element.Destroy then
 
             element:Destroy()
-
         end
     end
 
@@ -723,7 +922,7 @@ function Row:Destroy()
     )
 
     --------------------------------------------------------
-    -- Destroy container
+    -- DESTROY CONTAINER
     --------------------------------------------------------
 
     if self.Container then
@@ -732,11 +931,10 @@ function Row:Destroy()
 
         self.Container =
             nil
-
     end
 
     --------------------------------------------------------
-    -- Remove from parent
+    -- REMOVE FROM PARENT
     --------------------------------------------------------
 
     for i, element in ipairs(
@@ -752,7 +950,6 @@ function Row:Destroy()
 
             break
         end
-
     end
 end
 
