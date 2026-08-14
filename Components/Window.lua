@@ -32,6 +32,24 @@ local TAB_HEIGHT = 35
 local CONTENT_TOP =
     TOPBAR_HEIGHT + TAB_HEIGHT
 
+local WINDOW_OFFSET = 30
+
+------------------------------------------------------------
+-- GLOBAL WINDOW REGISTRY
+------------------------------------------------------------
+
+Window._Registry =
+    Window._Registry
+    or {}
+
+Window._NextDisplayOrder =
+    Window._NextDisplayOrder
+    or 1000
+
+Window._GlobalFocusConnection =
+    Window._GlobalFocusConnection
+    or nil
+
 ------------------------------------------------------------
 -- HELPERS
 ------------------------------------------------------------
@@ -47,6 +65,164 @@ end
 local function safeDisconnect(connection)
     if connection then
         connection:Disconnect()
+    end
+end
+
+local function getInputPosition(input)
+    if input
+        and input.Position then
+
+        return Vector2.new(
+            input.Position.X,
+            input.Position.Y
+        )
+    end
+
+    local mouse =
+        UserInputService:GetMouseLocation()
+
+    return Vector2.new(
+        mouse.X,
+        mouse.Y
+    )
+end
+
+------------------------------------------------------------
+-- WINDOW HIT TEST
+------------------------------------------------------------
+
+function Window:_ContainsPoint(point)
+
+    if self.IsDestroyed then
+        return false
+    end
+
+    if not self.MainFrame
+        or not self.MainFrame.Visible then
+
+        return false
+    end
+
+    local position =
+        self.MainFrame.AbsolutePosition
+
+    local size =
+        self.MainFrame.AbsoluteSize
+
+    return
+        point.X >= position.X
+        and point.X <= position.X + size.X
+        and point.Y >= position.Y
+        and point.Y <= position.Y + size.Y
+end
+
+------------------------------------------------------------
+-- DISPLAY ORDER
+------------------------------------------------------------
+
+function Window:_AcquireDisplayOrder()
+
+    Window._NextDisplayOrder =
+        Window._NextDisplayOrder + 1
+
+    return Window._NextDisplayOrder
+end
+
+------------------------------------------------------------
+-- REGISTER WINDOW
+------------------------------------------------------------
+
+function Window:_RegisterWindow()
+
+    table.insert(
+        Window._Registry,
+        self
+    )
+
+    --------------------------------------------------------
+    -- GLOBAL FOCUS HANDLER
+    --
+    -- Chỉ tạo một connection cho toàn bộ library.
+    --------------------------------------------------------
+
+    if not Window._GlobalFocusConnection then
+
+        Window._GlobalFocusConnection =
+            UserInputService.InputBegan:Connect(
+                function(input)
+
+                    if not isInput(input) then
+                        return
+                    end
+
+                    local point =
+                        getInputPosition(input)
+
+                    ------------------------------------------------
+                    -- Tìm window trên cùng đang chứa điểm click.
+                    ------------------------------------------------
+
+                    local selectedWindow = nil
+                    local highestOrder = -math.huge
+
+                    for _, window in ipairs(
+                        Window._Registry
+                    ) do
+
+                        if window
+                            and not window.IsDestroyed
+                            and window:_ContainsPoint(point) then
+
+                            if window.DisplayOrder
+                                > highestOrder then
+
+                                highestOrder =
+                                    window.DisplayOrder
+
+                                selectedWindow =
+                                    window
+                            end
+                        end
+                    end
+
+                    if selectedWindow then
+                        selectedWindow:Focus()
+                    end
+                end
+            )
+    end
+end
+
+------------------------------------------------------------
+-- UNREGISTER WINDOW
+------------------------------------------------------------
+
+function Window:_UnregisterWindow()
+
+    for i = #Window._Registry, 1, -1 do
+
+        if Window._Registry[i] == self then
+
+            table.remove(
+                Window._Registry,
+                i
+            )
+
+            break
+        end
+    end
+
+    --------------------------------------------------------
+    -- Không còn window -> ngắt global connection.
+    --------------------------------------------------------
+
+    if #Window._Registry == 0
+        and Window._GlobalFocusConnection then
+
+        Window._GlobalFocusConnection:Disconnect()
+
+        Window._GlobalFocusConnection =
+            nil
     end
 end
 
@@ -91,8 +267,7 @@ function Window.new(
         or DEFAULT_MAX_SIZE
 
     ------------------------------------------------------------
-    -- SAFETY:
-    -- MaxSize không được nhỏ hơn MinSize
+    -- SAFETY
     ------------------------------------------------------------
 
     self.MinSize =
@@ -119,9 +294,34 @@ function Window.new(
             )
         )
 
-    self.Position =
-        options.Position
-        or DEFAULT_POSITION
+    ------------------------------------------------------------
+    -- POSITION
+    --
+    -- Nếu user không truyền Position:
+    -- window mới sẽ lệch nhẹ để dễ nhìn multi-window.
+    ------------------------------------------------------------
+
+    if options.Position then
+
+        self.Position =
+            options.Position
+
+    else
+
+        local index =
+            #Window._Registry
+
+        self.Position =
+            UDim2.new(
+                DEFAULT_POSITION.X.Scale,
+                DEFAULT_POSITION.X.Offset
+                    + index * WINDOW_OFFSET,
+
+                DEFAULT_POSITION.Y.Scale,
+                DEFAULT_POSITION.Y.Offset
+                    + index * WINDOW_OFFSET
+            )
+    end
 
     self.ThemeData =
         themeData
@@ -142,6 +342,13 @@ function Window.new(
     self._Connections = {}
 
     self._CurrentTween = nil
+
+    ------------------------------------------------------------
+    -- DISPLAY ORDER
+    ------------------------------------------------------------
+
+    self.DisplayOrder =
+        self:_AcquireDisplayOrder()
 
     ------------------------------------------------------------
     -- PARENT
@@ -168,7 +375,6 @@ function Window.new(
                 "RobloxGui"
             )
             or CoreGui
-
     end
 
     ------------------------------------------------------------
@@ -195,6 +401,13 @@ function Window.new(
 
     self.ScreenGui.IgnoreGuiInset =
         true
+
+    ------------------------------------------------------------
+    -- IMPORTANT FOR MULTI WINDOW
+    ------------------------------------------------------------
+
+    self.ScreenGui.DisplayOrder =
+        self.DisplayOrder
 
     self.ScreenGui.Parent =
         targetParent
@@ -567,6 +780,12 @@ function Window.new(
         self.MainFrame
 
     ------------------------------------------------------------
+    -- REGISTER
+    ------------------------------------------------------------
+
+    self:_RegisterWindow()
+
+    ------------------------------------------------------------
     -- APPLY
     ------------------------------------------------------------
 
@@ -576,7 +795,49 @@ function Window.new(
 
     self:InitLogic()
 
+    ------------------------------------------------------------
+    -- FIRST WINDOW FOCUS
+    ------------------------------------------------------------
+
+    self:Focus()
+
     return self
+end
+
+----------------------------------------------------------------
+-- FOCUS
+----------------------------------------------------------------
+
+function Window:Focus()
+
+    if self.IsDestroyed then
+        return
+    end
+
+    ------------------------------------------------------------
+    -- Nếu window bị minimize vẫn đưa nó lên trước.
+    ------------------------------------------------------------
+
+    Window._NextDisplayOrder =
+        Window._NextDisplayOrder + 1
+
+    self.DisplayOrder =
+        Window._NextDisplayOrder
+
+    if self.ScreenGui then
+
+        self.ScreenGui.DisplayOrder =
+            self.DisplayOrder
+    end
+end
+
+----------------------------------------------------------------
+-- BRING TO FRONT
+----------------------------------------------------------------
+
+function Window:BringToFront()
+
+    self:Focus()
 end
 
 ----------------------------------------------------------------
@@ -614,7 +875,6 @@ function Window:_DisconnectAll()
         safeDisconnect(
             connection
         )
-
     end
 
     table.clear(
@@ -735,6 +995,7 @@ function Window:ApplyTheme(theme)
             local ok, err =
                 pcall(
                     function()
+
                         tab:UpdateTheme(
                             theme
                         )
@@ -747,7 +1008,6 @@ function Window:ApplyTheme(theme)
                     "Tab theme update failed:",
                     err
                 )
-
             end
         end
     end
@@ -767,6 +1027,8 @@ function Window:InitLogic()
         self.CollapseBtn.MouseButton1Click,
         function()
 
+            self:Focus()
+
             if self.IsDestroyed then
                 return
             end
@@ -776,25 +1038,25 @@ function Window:InitLogic()
             else
                 self:Close()
             end
-
         end
     )
 
     ------------------------------------------------------------
-    -- CLOSE BUTTON
+    -- CLOSE
     ------------------------------------------------------------
 
     self:_Connect(
         self.CloseBtn.MouseButton1Click,
         function()
 
-            self:Destroy()
+            self:Focus()
 
+            self:Destroy()
         end
     )
 
     ------------------------------------------------------------
-    -- DRAG
+    -- TOPBAR DRAG
     ------------------------------------------------------------
 
     local isDragging = false
@@ -811,12 +1073,13 @@ function Window:InitLogic()
                 return
             end
 
+            self:Focus()
+
             isDragging = true
             dragInput = input
             dragStart = input.Position
             startPosition =
                 self.MainFrame.Position
-
         end
     )
 
@@ -860,9 +1123,7 @@ function Window:InitLogic()
                 dragInput = nil
                 dragStart = nil
                 startPosition = nil
-
             end
-
         end
     )
 
@@ -888,6 +1149,8 @@ function Window:InitLogic()
                 return
             end
 
+            self:Focus()
+
             isResizing = true
 
             resizeInput = input
@@ -895,7 +1158,6 @@ function Window:InitLogic()
 
             startSize =
                 self.MainFrame.AbsoluteSize
-
         end
     )
 
@@ -912,10 +1174,6 @@ function Window:InitLogic()
             local delta =
                 input.Position
                 - resizeStart
-
-            ----------------------------------------------------
-            -- APPLY MIN + MAX
-            ----------------------------------------------------
 
             local newWidth =
                 math.clamp(
@@ -941,7 +1199,6 @@ function Window:InitLogic()
 
             self.Size =
                 self.MainFrame.Size
-
         end
     )
 
@@ -956,9 +1213,7 @@ function Window:InitLogic()
                 resizeInput = nil
                 resizeStart = nil
                 startSize = nil
-
             end
-
         end
     )
 end
@@ -1111,7 +1366,6 @@ function Window:Font(
                 "Không thể tạo custom font:",
                 fontType
             )
-
         end
     end
 
@@ -1149,7 +1403,6 @@ function Window:Font(
             tab:SetFont(
                 fontType
             )
-
         end
     end
 end
@@ -1293,6 +1546,8 @@ function Window:Close()
         return
     end
 
+    self:Focus()
+
     self.IsMinimized =
         true
 
@@ -1302,10 +1557,6 @@ function Window:Close()
 
     local currentWidth =
         self.MainFrame.AbsoluteSize.X
-
-    ------------------------------------------------------------
-    -- MINIMIZE
-    ------------------------------------------------------------
 
     self._CurrentTween =
         TweenService:Create(
@@ -1330,10 +1581,6 @@ function Window:Close()
         )
 
     self._CurrentTween:Play()
-
-    ------------------------------------------------------------
-    -- ARROW
-    ------------------------------------------------------------
 
     TweenService:Create(
 
@@ -1362,16 +1609,14 @@ function Window:Open()
         return
     end
 
+    self:Focus()
+
     self.IsMinimized =
         false
 
     if self._CurrentTween then
         self._CurrentTween:Cancel()
     end
-
-    ------------------------------------------------------------
-    -- OPEN
-    ------------------------------------------------------------
 
     self._CurrentTween =
         TweenService:Create(
@@ -1391,10 +1636,6 @@ function Window:Open()
         )
 
     self._CurrentTween:Play()
-
-    ------------------------------------------------------------
-    -- ARROW
-    ------------------------------------------------------------
 
     TweenService:Create(
 
@@ -1443,6 +1684,12 @@ function Window:Destroy()
     self:_DisconnectAll()
 
     ------------------------------------------------------------
+    -- UNREGISTER FROM GLOBAL WINDOW LIST
+    ------------------------------------------------------------
+
+    self:_UnregisterWindow()
+
+    ------------------------------------------------------------
     -- CLEAN TABS
     ------------------------------------------------------------
 
@@ -1456,7 +1703,6 @@ function Window:Destroy()
             table.clear(
                 tab.Elements
             )
-
         end
     end
 
