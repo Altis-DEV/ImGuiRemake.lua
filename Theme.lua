@@ -78,6 +78,9 @@ Theme.Themes = {
         TextInputText =
     Color3.fromRGB(255, 255, 255),
 
+        TextInputPlaceholder =
+    Color3.fromRGB(150, 150, 150),
+
         ConsoleFrame =
     Color3.fromRGB(24, 24, 24),
 
