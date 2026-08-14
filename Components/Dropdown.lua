@@ -21,6 +21,7 @@ function Dropdown.new(tab, options)
 
     self.Tab = tab
     self.Window = tab.Window
+    self.WidthAtRow = options.WidthAtRow
 
     self.HasTitle =
         options.Title ~= nil
