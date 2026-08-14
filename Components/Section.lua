@@ -23,6 +23,7 @@ function Section.new(parent, options)
 
     self.Parent = parent
     self.Window = parent.Window
+    self.WidthAtRow = options.WidthAtRow
 
     self.Title = tostring(options.Title or "Section")
     self.Opened = options.Open == true
