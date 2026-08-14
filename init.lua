@@ -127,6 +127,10 @@ local RowModule =
 local ModalModule =
     LoadModule("Components/Modal.lua")
 
+local ColorModule =
+    LoadModule("Components/Color.lua")
+
+
 ------------------------------------------------------------
 -- INJECT TAB MODULE
 ------------------------------------------------------------
@@ -173,6 +177,9 @@ WindowModule.RowModule =
 
 WindowModule.ModalModule =
     ModalModule
+
+WindowModule.ColorModule =
+    ColorModule
 ------------------------------------------------------------
 -- CREATE WINDOW
 ------------------------------------------------------------
