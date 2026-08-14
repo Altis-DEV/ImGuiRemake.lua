@@ -33,7 +33,6 @@ local ANIMATION_TIME = 0.22
 ------------------------------------------------------------
 
 local function setFont(instance, fontType)
-
     if typeof(fontType) == "string"
         and string.find(
             string.lower(fontType),
@@ -42,10 +41,9 @@ local function setFont(instance, fontType)
             true
         ) then
 
-        local ok, customFont =
-            pcall(function()
-                return Font.new(fontType)
-            end)
+        local ok, customFont = pcall(function()
+            return Font.new(fontType)
+        end)
 
         if ok and customFont then
             instance.FontFace = customFont
@@ -62,11 +60,53 @@ local function setFont(instance, fontType)
 end
 
 ------------------------------------------------------------
+-- MEASURE RICHTEXT LABEL
+------------------------------------------------------------
+
+local function measureText(
+    parent,
+    text,
+    width,
+    textSize,
+    font,
+    richText
+)
+    local temp = Instance.new("TextLabel")
+
+    temp.Name = "_ModalMeasure"
+    temp.Size = UDim2.new(0, width, 0, 1)
+    temp.BackgroundTransparency = 1
+
+    temp.Text = text or ""
+    temp.TextSize = textSize
+    temp.Font = font
+    temp.RichText = richText == true
+    temp.TextWrapped = true
+
+    temp.TextXAlignment =
+        Enum.TextXAlignment.Left
+
+    temp.TextYAlignment =
+        Enum.TextYAlignment.Top
+
+    temp.Parent = parent
+
+    -- Đợi Roblox cập nhật TextBounds.
+    task.wait()
+
+    local height =
+        temp.TextBounds.Y
+
+    temp:Destroy()
+
+    return height
+end
+
+------------------------------------------------------------
 -- CONSTRUCTOR
 ------------------------------------------------------------
 
 function Modal.new(tab, options)
-
     options = options or {}
 
     local self =
@@ -234,8 +274,8 @@ function Modal.new(tab, options)
         UDim2.new(
             1,
             -(TITLE_PADDING_X * 2),
-            0,
-            0
+            1,
+            -(TITLE_PADDING_Y * 2)
         )
 
     self.TitleLabel.Position =
@@ -247,7 +287,6 @@ function Modal.new(tab, options)
         )
 
     self.TitleLabel.BackgroundTransparency = 1
-
     self.TitleLabel.RichText = true
     self.TitleLabel.TextWrapped = true
 
@@ -317,8 +356,8 @@ function Modal.new(tab, options)
         UDim2.new(
             1,
             -(TEXT_PADDING_X * 2),
-            0,
-            0
+            1,
+            -(TEXT_PADDING_Y * 2)
         )
 
     self.TextLabel.Position =
@@ -330,7 +369,6 @@ function Modal.new(tab, options)
         )
 
     self.TextLabel.BackgroundTransparency = 1
-
     self.TextLabel.RichText = true
     self.TextLabel.TextWrapped = true
 
@@ -467,7 +505,7 @@ function Modal.new(tab, options)
     )
 
     --------------------------------------------------------
-    -- INITIAL BUILD
+    -- INITIAL BUILD + OPEN ANIMATION
     --------------------------------------------------------
 
     task.defer(function()
@@ -476,7 +514,6 @@ function Modal.new(tab, options)
             return
         end
 
-        -- TextBounds cần một frame đã có chiều rộng.
         self:_PrepareSize()
 
         local targetSize =
@@ -486,10 +523,6 @@ function Modal.new(tab, options)
                 0,
                 self.TargetHeight
             )
-
-        ----------------------------------------------------
-        -- OPEN ANIMATION
-        ----------------------------------------------------
 
         self.ModalFrame.Size =
             UDim2.new(
@@ -504,13 +537,11 @@ function Modal.new(tab, options)
 
         TweenService:Create(
             self.ModalFrame,
-
             TweenInfo.new(
                 ANIMATION_TIME,
                 Enum.EasingStyle.Quad,
                 Enum.EasingDirection.Out
             ),
-
             {
                 Size = targetSize
             }
@@ -518,13 +549,11 @@ function Modal.new(tab, options)
 
         TweenService:Create(
             self.Overlay,
-
             TweenInfo.new(
                 ANIMATION_TIME,
                 Enum.EasingStyle.Quad,
                 Enum.EasingDirection.Out
             ),
-
             {
                 BackgroundTransparency =
                     theme.ModalOverlayTransparency ~= nil
@@ -543,33 +572,26 @@ end
 ------------------------------------------------------------
 
 function Modal:_MeasureTitle()
-
-    --------------------------------------------------------
-    -- Cho Roblox tính TextBounds của RichText.
-    --
-    -- TitleLabel đã TextWrapped + có width cố định.
-    --------------------------------------------------------
-
     local width =
         MODAL_WIDTH
         - (TITLE_PADDING_X * 2)
 
-    self.TitleLabel.Size =
-        UDim2.new(
-            0,
+    local font =
+        self.TitleLabel.Font
+
+    local height =
+        measureText(
+            self.ModalFrame,
+            self.Title,
             width,
-            0,
-            10000
+            self.TitleLabel.TextSize,
+            font,
+            true
         )
-
-    task.wait()
-
-    local textHeight =
-        self.TitleLabel.TextBounds.Y
 
     return math.max(
         TITLE_MIN_HEIGHT,
-        textHeight
+        height
         + (TITLE_PADDING_Y * 2)
     )
 end
@@ -579,27 +601,26 @@ end
 ------------------------------------------------------------
 
 function Modal:_MeasureText()
-
     local width =
         MODAL_WIDTH
         - (TEXT_PADDING_X * 2)
 
-    self.TextLabel.Size =
-        UDim2.new(
-            0,
+    local font =
+        self.TextLabel.Font
+
+    local height =
+        measureText(
+            self.ModalFrame,
+            self.Text,
             width,
-            0,
-            10000
+            self.TextLabel.TextSize,
+            font,
+            true
         )
-
-    task.wait()
-
-    local textHeight =
-        self.TextLabel.TextBounds.Y
 
     return math.max(
         TEXT_MIN_HEIGHT,
-        textHeight
+        height
         + (TEXT_PADDING_Y * 2)
     )
 end
@@ -614,22 +635,14 @@ function Modal:_PrepareSize()
         return
     end
 
-    --------------------------------------------------------
-    -- TITLE
-    --------------------------------------------------------
-
     local titleHeight =
         self:_MeasureTitle()
-
-    --------------------------------------------------------
-    -- TEXT
-    --------------------------------------------------------
 
     local textHeight =
         self:_MeasureText()
 
     --------------------------------------------------------
-    -- APPLY REAL FRAME HEIGHTS
+    -- APPLY FRAME HEIGHTS
     --------------------------------------------------------
 
     self.TitleFrame.Size =
@@ -646,6 +659,26 @@ function Modal:_PrepareSize()
             0,
             0,
             textHeight
+        )
+
+    --------------------------------------------------------
+    -- APPLY LABEL SIZES
+    --------------------------------------------------------
+
+    self.TitleLabel.Size =
+        UDim2.new(
+            1,
+            -(TITLE_PADDING_X * 2),
+            1,
+            -(TITLE_PADDING_Y * 2)
+        )
+
+    self.TextLabel.Size =
+        UDim2.new(
+            1,
+            -(TEXT_PADDING_X * 2),
+            1,
+            -(TEXT_PADDING_Y * 2)
         )
 
     --------------------------------------------------------
@@ -706,7 +739,8 @@ function Modal:_BuildButtons()
         button.Name =
             "Button_"
             .. tostring(
-                data.Title or index
+                data.Title
+                or index
             )
 
         button.Text =
@@ -716,6 +750,7 @@ function Modal:_BuildButtons()
             )
 
         button.TextSize = 13
+
         button.Font =
             self.Window.CurrentFont
 
@@ -747,8 +782,7 @@ function Modal:_BuildButtons()
         button.AutoButtonColor = false
         button.LayoutOrder = index
         button.ZIndex = 503
-        button.Parent =
-            self.ButtonFrame
+        button.Parent = self.ButtonFrame
 
         table.insert(
             self.ButtonObjects,
@@ -827,12 +861,10 @@ function Modal:_BuildButtons()
                             )
 
                         if not ok then
-
                             warn(
                                 "Modal button callback error:",
                                 err
                             )
-
                         end
                     end
                 )
@@ -918,7 +950,7 @@ function Modal:SetFont(fontType)
     end
 
     --------------------------------------------------------
-    -- Font changes TextBounds
+    -- Font can change TextBounds.
     --------------------------------------------------------
 
     self:_PrepareSize()
@@ -1055,7 +1087,7 @@ function Modal:Close()
     self.Opened = false
 
     --------------------------------------------------------
-    -- FADE OUT
+    -- FADE
     --------------------------------------------------------
 
     TweenService:Create(
@@ -1109,7 +1141,6 @@ function Modal:Close()
             if not self.Opened then
                 self:Destroy()
             end
-
         end
     )
 end
@@ -1128,10 +1159,8 @@ function Modal:Destroy()
     self.Opened = false
 
     if self.Overlay then
-
         self.Overlay:Destroy()
         self.Overlay = nil
-
     end
 
     self.ModalFrame = nil
