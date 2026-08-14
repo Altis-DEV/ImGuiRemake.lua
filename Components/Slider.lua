@@ -76,6 +76,18 @@ function Slider.new(tab, options)
         and tostring(options.Format)
         or "{value}"
 
+    ------------------------------------------------------------
+    -- DRAG
+    --
+    -- Mặc định true để giữ behavior cũ.
+    --
+    -- true  = Slider
+    -- false = Progress Bar
+    ------------------------------------------------------------
+
+    self.Drag =
+        options.Drag ~= false
+
     self.Callback =
         type(options.Callback) == "function"
         and options.Callback
@@ -243,6 +255,10 @@ function Slider.new(tab, options)
                 return
             end
 
+            if not self.Drag then
+                return
+            end
+
             self:_SetFromPointer()
         end
     )
@@ -251,6 +267,10 @@ function Slider.new(tab, options)
         function(input)
 
             if self.Destroyed then
+                return
+            end
+
+            if not self.Drag then
                 return
             end
 
@@ -267,6 +287,10 @@ function Slider.new(tab, options)
         function(input)
 
             if self.Destroyed then
+                return
+            end
+
+            if not self.Drag then
                 return
             end
 
@@ -372,7 +396,8 @@ end
 
 function Slider:_SetFromPointer()
 
-    if self.Destroyed then
+    if self.Destroyed
+        or not self.Drag then
         return
     end
 
@@ -505,21 +530,24 @@ function Slider:SetValue(
     if changed
         and fireCallback ~= false then
 
-        task.spawn(function()
+        task.spawn(
+            function()
 
-            local ok, err =
-                pcall(
-                    self.Callback,
-                    self.Value
-                )
+                local ok, err =
+                    pcall(
+                        self.Callback,
+                        self.Value
+                    )
 
-            if not ok then
-                warn(
-                    "Slider callback error:",
-                    err
-                )
+                if not ok then
+
+                    warn(
+                        "Slider callback error:",
+                        err
+                    )
+                end
             end
-        end)
+        )
     end
 
     return self.Value
@@ -532,7 +560,9 @@ end
 function Slider:_FormatValue(value)
 
     local formattedValue =
-        self:_FormatNumber(value)
+        self:_FormatNumber(
+            value
+        )
 
     if not self.Format
         or self.Format == "" then
@@ -550,6 +580,7 @@ end
 function Slider:_FormatNumber(value)
 
     if self.Step >= 1 then
+
         return tostring(
             math.floor(
                 value + 0.5
@@ -559,7 +590,9 @@ function Slider:_FormatNumber(value)
 
     local decimals = 0
     local step =
-        math.abs(self.Step)
+        math.abs(
+            self.Step
+        )
 
     while step < 1
         and decimals < 6 do
@@ -576,6 +609,10 @@ function Slider:_FormatNumber(value)
     )
 end
 
+------------------------------------------------------------
+-- SET FORMAT
+------------------------------------------------------------
+
 function Slider:SetFormat(
     newFormat
 )
@@ -587,7 +624,9 @@ function Slider:SetFormat(
     self.Format =
         newFormat == nil
         and "{value}"
-        or tostring(newFormat)
+        or tostring(
+            newFormat
+        )
 
     self.ValueLabel.Text =
         self:_FormatValue(
@@ -596,10 +635,36 @@ function Slider:SetFormat(
 end
 
 ------------------------------------------------------------
+-- SET DRAG
+------------------------------------------------------------
+
+function Slider:SetDrag(
+    state
+)
+
+    if self.Destroyed then
+        return
+    end
+
+    self.Drag =
+        state == true
+
+    --------------------------------------------------------
+    -- Stop current dragging immediately when disabled.
+    --------------------------------------------------------
+
+    if not self.Drag then
+        self.Dragging = false
+    end
+end
+
+------------------------------------------------------------
 -- SET TITLE
 ------------------------------------------------------------
 
-function Slider:SetTitle(newTitle)
+function Slider:SetTitle(
+    newTitle
+)
 
     if self.Destroyed then
         return
@@ -612,20 +677,26 @@ function Slider:SetTitle(newTitle)
         self.Title = ""
 
         if self.TitleLabel then
+
             self.TitleLabel:Destroy()
             self.TitleLabel = nil
         end
 
-        self.Container.Name = "Slider"
+        self.Container.Name =
+            "Slider"
 
         return
     end
 
     self.HasTitle = true
+
     self.Title =
-        tostring(newTitle)
+        tostring(
+            newTitle
+        )
 
     if not self.TitleLabel then
+
         self:_CreateTitleLabel(
             self.Window.ThemeData
         )
@@ -640,26 +711,32 @@ function Slider:SetTitle(newTitle)
 end
 
 ------------------------------------------------------------
--- MIN / MAX
+-- MIN
 ------------------------------------------------------------
 
-function Slider:SetMin(newMin)
+function Slider:SetMin(
+    newMin
+)
 
     if self.Destroyed then
         return self.Min
     end
 
     newMin =
-        tonumber(newMin)
+        tonumber(
+            newMin
+        )
 
     if not newMin then
         return self.Min
     end
 
-    self.Min = newMin
+    self.Min =
+        newMin
 
     if self.Max < self.Min then
-        self.Max = self.Min
+        self.Max =
+            self.Min
     end
 
     self:SetValue(
@@ -669,23 +746,33 @@ function Slider:SetMin(newMin)
     return self.Min
 end
 
-function Slider:SetMax(newMax)
+------------------------------------------------------------
+-- MAX
+------------------------------------------------------------
+
+function Slider:SetMax(
+    newMax
+)
 
     if self.Destroyed then
         return self.Max
     end
 
     newMax =
-        tonumber(newMax)
+        tonumber(
+            newMax
+        )
 
     if not newMax then
         return self.Max
     end
 
-    self.Max = newMax
+    self.Max =
+        newMax
 
     if self.Min > self.Max then
-        self.Min = self.Max
+        self.Min =
+            self.Max
     end
 
     self:SetValue(
@@ -699,7 +786,9 @@ end
 -- FONT
 ------------------------------------------------------------
 
-function Slider:SetFont(fontType)
+function Slider:SetFont(
+    fontType
+)
 
     if self.Destroyed then
         return
@@ -714,13 +803,18 @@ function Slider:SetFont(fontType)
         ) then
 
         local ok, customFont =
-            pcall(function()
-                return Font.new(fontType)
-            end)
+            pcall(
+                function()
+                    return Font.new(
+                        fontType
+                    )
+                end
+            )
 
         if ok and customFont then
 
             if self.TitleLabel then
+
                 self.TitleLabel.FontFace =
                     customFont
             end
@@ -733,9 +827,11 @@ function Slider:SetFont(fontType)
     end
 
     if typeof(fontType) == "EnumItem"
-        and fontType.EnumType == Enum.Font then
+        and fontType.EnumType
+            == Enum.Font then
 
         if self.TitleLabel then
+
             self.TitleLabel.Font =
                 fontType
         end
@@ -749,7 +845,9 @@ end
 -- THEME
 ------------------------------------------------------------
 
-function Slider:UpdateTheme(theme)
+function Slider:UpdateTheme(
+    theme
+)
 
     if self.Destroyed then
         return
@@ -758,25 +856,46 @@ function Slider:UpdateTheme(theme)
     self.SliderFrame.BackgroundColor3 =
         theme.SliderFrame
         or theme.Border
-        or Color3.fromRGB(38, 38, 38)
+        or Color3.fromRGB(
+            38,
+            38,
+            38
+        )
 
     self.SliderFrame.BorderColor3 =
         theme.Border
-        or Color3.fromRGB(60, 60, 60)
+        or Color3.fromRGB(
+            60,
+            60,
+            60
+        )
 
     self.SliderBar.BackgroundColor3 =
         theme.SliderBar
         or theme.Accent
-        or Color3.fromRGB(40, 90, 175)
+        or Color3.fromRGB(
+            40,
+            90,
+            175
+        )
 
     self.ValueLabel.TextColor3 =
         theme.Text
-        or Color3.fromRGB(255, 255, 255)
+        or Color3.fromRGB(
+            255,
+            255,
+            255
+        )
 
     if self.TitleLabel then
+
         self.TitleLabel.TextColor3 =
             theme.Text
-            or Color3.fromRGB(255, 255, 255)
+            or Color3.fromRGB(
+                255,
+                255,
+                255
+            )
     end
 
     self:SetFont(
@@ -803,8 +922,11 @@ function Slider:Destroy()
     self.Dragging = false
 
     if self.Container then
+
         self.Container:Destroy()
-        self.Container = nil
+
+        self.Container =
+            nil
     end
 
     for i, element in ipairs(
@@ -812,10 +934,12 @@ function Slider:Destroy()
     ) do
 
         if element == self then
+
             table.remove(
                 self.Tab.Elements,
                 i
             )
+
             break
         end
     end
