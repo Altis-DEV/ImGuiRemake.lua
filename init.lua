@@ -130,6 +130,12 @@ local ModalModule =
 local ColorModule =
     LoadModule("Components/Color.lua")
 
+local TextInputModule =
+    LoadModule("Components/TextInput.lua")
+
+local ConsoleModule =
+    LoadModule("Components/Console.lua")
+
 
 ------------------------------------------------------------
 -- INJECT TAB MODULE
@@ -180,6 +186,12 @@ WindowModule.ModalModule =
 
 WindowModule.ColorModule =
     ColorModule
+
+WindowModule.TextInputModule =
+    TextInputModule
+
+WindowModule.ConsoleModule =
+    ConsoleModule
 ------------------------------------------------------------
 -- CREATE WINDOW
 ------------------------------------------------------------
