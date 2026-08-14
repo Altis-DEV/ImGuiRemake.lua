@@ -16,62 +16,47 @@ local DEFAULT_TEXT_COLOR =
 function TextBox.new(tab, options)
     options = options or {}
 
-    local self =
-        setmetatable(
-            {},
-            TextBox
-        )
+    local self = setmetatable({}, TextBox)
 
     self.Tab = tab
     self.Window = tab.Window
 
-    ------------------------------------------------------------
-    -- PROPERTIES
-    ------------------------------------------------------------
+    self.HasTitle =
+        options.Title ~= nil
+        and tostring(options.Title) ~= ""
 
     self.Title =
-        tostring(
-            options.Title
-                or "TextBox"
-        )
+        self.HasTitle
+        and tostring(options.Title)
+        or ""
 
     self.Placeholder =
-        tostring(
-            options.Placeholder
-                or ""
-        )
+        tostring(options.Placeholder or "")
 
-    -- Giống Roblox TextBox.ClearTextOnFocus
     self.ClearTextOnFocus =
         options.ClearTextOnFocus == true
 
     self.Text =
-        tostring(
-            options.Text
-                or ""
-        )
+        tostring(options.Text or "")
 
     self.Callback =
-        type(options.Callback)
-            == "function"
+        type(options.Callback) == "function"
         and options.Callback
         or function() end
 
     self.Destroyed = false
 
-    local theme =
-        self.Window.ThemeData
+    local theme = self.Window.ThemeData
 
     ------------------------------------------------------------
     -- CONTAINER
     ------------------------------------------------------------
 
-    self.Container =
-        Instance.new("Frame")
-
+    self.Container = Instance.new("Frame")
     self.Container.Name =
-        self.Title
-        .. "_TextBox"
+        self.HasTitle
+        and self.Title .. "_TextBox"
+        or "TextBox"
 
     self.Container.Size =
         UDim2.new(
@@ -81,12 +66,8 @@ function TextBox.new(tab, options)
             ELEMENT_HEIGHT
         )
 
-    self.Container.BackgroundTransparency =
-        1
-
-    self.Container.BorderSizePixel =
-        0
-
+    self.Container.BackgroundTransparency = 1
+    self.Container.BorderSizePixel = 0
     self.Container.Parent =
         self.Tab.ContentFrame
 
@@ -94,11 +75,8 @@ function TextBox.new(tab, options)
     -- TEXTBOX FRAME
     ------------------------------------------------------------
 
-    self.TextBoxFrame =
-        Instance.new("Frame")
-
-    self.TextBoxFrame.Name =
-        "TextBoxFrame"
+    self.TextBoxFrame = Instance.new("Frame")
+    self.TextBoxFrame.Name = "TextBoxFrame"
 
     self.TextBoxFrame.Size =
         UDim2.new(
@@ -109,33 +87,18 @@ function TextBox.new(tab, options)
         )
 
     self.TextBoxFrame.Position =
-        UDim2.new(
-            0,
-            0,
-            0,
-            0
-        )
+        UDim2.new(0, 0, 0, 0)
 
     self.TextBoxFrame.BackgroundColor3 =
         theme.TextBoxFrame
         or theme.Border
-        or Color3.fromRGB(
-            38,
-            38,
-            38
-        )
+        or Color3.fromRGB(38, 38, 38)
 
     self.TextBoxFrame.BorderColor3 =
         theme.Border
-        or Color3.fromRGB(
-            60,
-            60,
-            60
-        )
+        or Color3.fromRGB(60, 60, 60)
 
-    self.TextBoxFrame.BorderSizePixel =
-        1
-
+    self.TextBoxFrame.BorderSizePixel = 1
     self.TextBoxFrame.Parent =
         self.Container
 
@@ -143,11 +106,8 @@ function TextBox.new(tab, options)
     -- INPUT
     ------------------------------------------------------------
 
-    self.Input =
-        Instance.new("TextBox")
-
-    self.Input.Name =
-        "Input"
+    self.Input = Instance.new("TextBox")
+    self.Input.Name = "Input"
 
     self.Input.Size =
         UDim2.new(
@@ -158,26 +118,10 @@ function TextBox.new(tab, options)
         )
 
     self.Input.Position =
-        UDim2.new(
-            0,
-            6,
-            0,
-            0
-        )
+        UDim2.new(0, 6, 0, 0)
 
-    self.Input.BackgroundTransparency =
-        1
-
-    ------------------------------------------------------------
-    -- TEXT
-    ------------------------------------------------------------
-
-    self.Input.Text =
-        self.Text
-
-    ------------------------------------------------------------
-    -- PLACEHOLDER
-    ------------------------------------------------------------
+    self.Input.BackgroundTransparency = 1
+    self.Input.Text = self.Text
 
     self.Input.PlaceholderText =
         self.Placeholder
@@ -186,17 +130,11 @@ function TextBox.new(tab, options)
         theme.Placeholder
         or DEFAULT_PLACEHOLDER_COLOR
 
-    ------------------------------------------------------------
-    -- USER INPUT TEXT
-    ------------------------------------------------------------
-
     self.Input.TextColor3 =
         theme.Text
         or DEFAULT_TEXT_COLOR
 
-    self.Input.TextSize =
-        13
-
+    self.Input.TextSize = 13
     self.Input.Font =
         self.Window.CurrentFont
 
@@ -206,22 +144,74 @@ function TextBox.new(tab, options)
     self.Input.TextYAlignment =
         Enum.TextYAlignment.Center
 
-    ------------------------------------------------------------
-    -- ROBLOX-LIKE BEHAVIOR
-    ------------------------------------------------------------
-
     self.Input.ClearTextOnFocus =
         self.ClearTextOnFocus
 
-    self.Input.TextWrapped =
-        false
-
+    self.Input.TextWrapped = false
     self.Input.Parent =
         self.TextBoxFrame
 
     ------------------------------------------------------------
     -- TITLE
     ------------------------------------------------------------
+
+    if self.HasTitle then
+        self:_CreateTitleLabel(theme)
+    end
+
+    ------------------------------------------------------------
+    -- TEXT CHANGED
+    ------------------------------------------------------------
+
+    self.Input:GetPropertyChangedSignal(
+        "Text"
+    ):Connect(function()
+
+        if self.Destroyed then
+            return
+        end
+
+        self.Text =
+            self.Input.Text
+
+        task.spawn(function()
+
+            local ok, err =
+                pcall(
+                    self.Callback,
+                    self.Text
+                )
+
+            if not ok then
+                warn(
+                    "TextBox callback error:",
+                    err
+                )
+            end
+        end)
+    end)
+
+    ------------------------------------------------------------
+    -- REGISTER
+    ------------------------------------------------------------
+
+    table.insert(
+        self.Tab.Elements,
+        self
+    )
+
+    return self
+end
+
+------------------------------------------------------------
+-- CREATE TITLE
+------------------------------------------------------------
+
+function TextBox:_CreateTitleLabel(theme)
+
+    if self.TitleLabel then
+        return
+    end
 
     self.TitleLabel =
         Instance.new("TextLabel")
@@ -245,8 +235,7 @@ function TextBox.new(tab, options)
             0
         )
 
-    self.TitleLabel.BackgroundTransparency =
-        1
+    self.TitleLabel.BackgroundTransparency = 1
 
     self.TitleLabel.Text =
         self.Title
@@ -255,9 +244,7 @@ function TextBox.new(tab, options)
         theme.Text
         or DEFAULT_TEXT_COLOR
 
-    self.TitleLabel.TextSize =
-        13
-
+    self.TitleLabel.TextSize = 13
     self.TitleLabel.Font =
         self.Window.CurrentFont
 
@@ -269,56 +256,6 @@ function TextBox.new(tab, options)
 
     self.TitleLabel.Parent =
         self.Container
-
-    ------------------------------------------------------------
-    -- TEXT CHANGED
-    ------------------------------------------------------------
-
-    self.Input:GetPropertyChangedSignal(
-        "Text"
-    ):Connect(
-        function()
-
-            if self.Destroyed then
-                return
-            end
-
-            self.Text =
-                self.Input.Text
-
-            task.spawn(
-                function()
-
-                    local ok, err =
-                        pcall(
-                            self.Callback,
-                            self.Text
-                        )
-
-                    if not ok then
-
-                        warn(
-                            "TextBox callback error:",
-                            err
-                        )
-
-                    end
-
-                end
-            )
-        end
-    )
-
-    ------------------------------------------------------------
-    -- REGISTER
-    ------------------------------------------------------------
-
-    table.insert(
-        self.Tab.Elements,
-        self
-    )
-
-    return self
 end
 
 ------------------------------------------------------------
@@ -349,7 +286,6 @@ function TextBox:Clear()
     end
 
     self.Text = ""
-
     self.Input.Text = ""
 end
 
@@ -357,18 +293,37 @@ end
 -- SET TITLE
 ------------------------------------------------------------
 
-function TextBox:SetTitle(
-    newTitle
-)
+function TextBox:SetTitle(newTitle)
 
     if self.Destroyed then
         return
     end
 
+    if newTitle == nil
+        or tostring(newTitle) == "" then
+
+        self.HasTitle = false
+        self.Title = ""
+
+        if self.TitleLabel then
+            self.TitleLabel:Destroy()
+            self.TitleLabel = nil
+        end
+
+        self.Container.Name = "TextBox"
+
+        return
+    end
+
+    self.HasTitle = true
     self.Title =
-        tostring(
-            newTitle
+        tostring(newTitle)
+
+    if not self.TitleLabel then
+        self:_CreateTitleLabel(
+            self.Window.ThemeData
         )
+    end
 
     self.Container.Name =
         self.Title
@@ -393,6 +348,7 @@ function TextBox:SetPlaceholder(
     self.Placeholder =
         tostring(
             newPlaceholder
+                or ""
         )
 
     self.Input.PlaceholderText =
@@ -422,17 +378,11 @@ end
 -- SET FONT
 ------------------------------------------------------------
 
-function TextBox:SetFont(
-    fontType
-)
+function TextBox:SetFont(fontType)
 
     if self.Destroyed then
         return
     end
-
-    --------------------------------------------------------
-    -- CUSTOM FONT
-    --------------------------------------------------------
 
     if typeof(fontType) == "string"
         and string.find(
@@ -443,40 +393,33 @@ function TextBox:SetFont(
         ) then
 
         local ok, customFont =
-            pcall(
-                function()
-                    return Font.new(
-                        fontType
-                    )
-                end
-            )
+            pcall(function()
+                return Font.new(fontType)
+            end)
 
         if ok and customFont then
-
             self.Input.FontFace =
                 customFont
 
-            self.TitleLabel.FontFace =
-                customFont
-
+            if self.TitleLabel then
+                self.TitleLabel.FontFace =
+                    customFont
+            end
         end
 
         return
     end
 
-    --------------------------------------------------------
-    -- ENUM FONT
-    --------------------------------------------------------
-
     if typeof(fontType) == "EnumItem"
-        and fontType.EnumType
-            == Enum.Font then
+        and fontType.EnumType == Enum.Font then
 
         self.Input.Font =
             fontType
 
-        self.TitleLabel.Font =
-            fontType
+        if self.TitleLabel then
+            self.TitleLabel.Font =
+                fontType
+        end
     end
 end
 
@@ -484,62 +427,34 @@ end
 -- UPDATE THEME
 ------------------------------------------------------------
 
-function TextBox:UpdateTheme(
-    theme
-)
+function TextBox:UpdateTheme(theme)
 
     if self.Destroyed then
         return
     end
 
-    --------------------------------------------------------
-    -- FRAME
-    --------------------------------------------------------
-
     self.TextBoxFrame.BackgroundColor3 =
         theme.TextBoxFrame
         or theme.Border
-        or Color3.fromRGB(
-            38,
-            38,
-            38
-        )
+        or Color3.fromRGB(38, 38, 38)
 
     self.TextBoxFrame.BorderColor3 =
         theme.Border
-        or Color3.fromRGB(
-            60,
-            60,
-            60
-        )
-
-    --------------------------------------------------------
-    -- USER TEXT
-    --------------------------------------------------------
+        or Color3.fromRGB(60, 60, 60)
 
     self.Input.TextColor3 =
         theme.Text
         or DEFAULT_TEXT_COLOR
 
-    --------------------------------------------------------
-    -- PLACEHOLDER
-    --------------------------------------------------------
-
     self.Input.PlaceholderColor3 =
         theme.Placeholder
         or DEFAULT_PLACEHOLDER_COLOR
 
-    --------------------------------------------------------
-    -- TITLE
-    --------------------------------------------------------
-
-    self.TitleLabel.TextColor3 =
-        theme.Text
-        or DEFAULT_TEXT_COLOR
-
-    --------------------------------------------------------
-    -- FONT
-    --------------------------------------------------------
+    if self.TitleLabel then
+        self.TitleLabel.TextColor3 =
+            theme.Text
+            or DEFAULT_TEXT_COLOR
+    end
 
     self:SetFont(
         self.Window.CurrentFont
@@ -559,11 +474,8 @@ function TextBox:Destroy()
     self.Destroyed = true
 
     if self.Container then
-
         self.Container:Destroy()
-
-        self.Container =
-            nil
+        self.Container = nil
     end
 
     for i, element in ipairs(
@@ -571,12 +483,10 @@ function TextBox:Destroy()
     ) do
 
         if element == self then
-
             table.remove(
                 self.Tab.Elements,
                 i
             )
-
             break
         end
     end
