@@ -71,6 +71,18 @@ Theme.Themes = {
 
         ModalButtonText =
             Color3.fromRGB(255, 255, 255),
+
+        TextInputFrame =
+    Color3.fromRGB(38, 38, 38),
+
+        TextInputText =
+    Color3.fromRGB(255, 255, 255),
+
+        ConsoleFrame =
+    Color3.fromRGB(24, 24, 24),
+
+        ConsoleText =
+    Color3.fromRGB(220, 220, 220),
     }
 }
 
