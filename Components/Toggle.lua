@@ -16,6 +16,7 @@ function Toggle.new(tab, options)
 
     self.Tab = tab
     self.Window = tab.Window
+    self.WidthAtRow = options.WidthAtRow
 
     self.Title = tostring(options.Title or "Toggle")
     self.StateValue = options.State == true
