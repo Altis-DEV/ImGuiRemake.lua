@@ -13,14 +13,24 @@ local SCROLLBAR_THICKNESS = 4
 local DEFAULT_TEXT_COLOR =
     Color3.fromRGB(255, 255, 255)
 
+local DEFAULT_PLACEHOLDER_COLOR =
+    Color3.fromRGB(150, 150, 150)
+
 function TextInput.new(tab, options)
     options = options or {}
 
     local self =
-        setmetatable({}, TextInput)
+        setmetatable(
+            {},
+            TextInput
+        )
 
     self.Tab = tab
     self.Window = tab.Window
+
+    ------------------------------------------------------------
+    -- PROPERTIES
+    ------------------------------------------------------------
 
     self.Size =
         options.Size
@@ -29,10 +39,17 @@ function TextInput.new(tab, options)
     self.Text =
         tostring(
             options.Text
-            or ""
+                or ""
         )
 
-    self.Destroyed = false
+    self.Placeholder =
+        tostring(
+            options.Placeholder
+                or ""
+        )
+
+    self.Destroyed =
+        false
 
     local theme =
         self.Window.ThemeData
@@ -90,16 +107,28 @@ function TextInput.new(tab, options)
         Instance.new("UIPadding")
 
     self.Padding.PaddingTop =
-        UDim.new(0, PADDING)
+        UDim.new(
+            0,
+            PADDING
+        )
 
     self.Padding.PaddingBottom =
-        UDim.new(0, PADDING)
+        UDim.new(
+            0,
+            PADDING
+        )
 
     self.Padding.PaddingLeft =
-        UDim.new(0, PADDING)
+        UDim.new(
+            0,
+            PADDING
+        )
 
     self.Padding.PaddingRight =
-        UDim.new(0, PADDING)
+        UDim.new(
+            0,
+            PADDING
+        )
 
     self.Padding.Parent =
         self.Container
@@ -152,6 +181,10 @@ function TextInput.new(tab, options)
     self.Input.Font =
         self.Window.CurrentFont
 
+    ------------------------------------------------------------
+    -- TEXT
+    ------------------------------------------------------------
+
     self.Input.TextColor3 =
         theme.TextInputText
         or theme.Text
@@ -159,6 +192,18 @@ function TextInput.new(tab, options)
 
     self.Input.Text =
         self.Text
+
+    ------------------------------------------------------------
+    -- PLACEHOLDER
+    ------------------------------------------------------------
+
+    self.Input.PlaceholderText =
+        self.Placeholder
+
+    self.Input.PlaceholderColor3 =
+        theme.TextInputPlaceholder
+        or theme.Placeholder
+        or DEFAULT_PLACEHOLDER_COLOR
 
     self.Input.Parent =
         self.Container
@@ -198,6 +243,7 @@ end
 ------------------------------------------------------------
 
 function TextInput:SetText(text)
+
     if self.Destroyed then
         return
     end
@@ -205,7 +251,7 @@ function TextInput:SetText(text)
     self.Text =
         tostring(
             text
-            or ""
+                or ""
         )
 
     self.Input.Text =
@@ -223,12 +269,20 @@ end
 ------------------------------------------------------------
 
 function TextInput:Clear()
+
     if self.Destroyed then
         return
     end
 
     self.Text = ""
+
     self.Input.Text = ""
+
+    self.Container.CanvasPosition =
+        Vector2.new(
+            0,
+            0
+        )
 end
 
 ------------------------------------------------------------
@@ -236,6 +290,7 @@ end
 ------------------------------------------------------------
 
 function TextInput:SetFont(fontType)
+
     if self.Destroyed then
         return
     end
@@ -249,11 +304,13 @@ function TextInput:SetFont(fontType)
         ) then
 
         local ok, customFont =
-            pcall(function()
-                return Font.new(
-                    fontType
-                )
-            end)
+            pcall(
+                function()
+                    return Font.new(
+                        fontType
+                    )
+                end
+            )
 
         if ok and customFont then
             self.Input.FontFace =
@@ -264,7 +321,8 @@ function TextInput:SetFont(fontType)
     end
 
     if typeof(fontType) == "EnumItem"
-        and fontType.EnumType == Enum.Font then
+        and fontType.EnumType
+            == Enum.Font then
 
         self.Input.Font =
             fontType
@@ -276,9 +334,14 @@ end
 ------------------------------------------------------------
 
 function TextInput:UpdateTheme(theme)
+
     if self.Destroyed then
         return
     end
+
+    ------------------------------------------------------------
+    -- FRAME
+    ------------------------------------------------------------
 
     self.Container.BackgroundColor3 =
         theme.TextInputFrame
@@ -286,9 +349,26 @@ function TextInput:UpdateTheme(theme)
     self.Container.BorderColor3 =
         theme.Border
 
+    ------------------------------------------------------------
+    -- TEXT
+    ------------------------------------------------------------
+
     self.Input.TextColor3 =
         theme.TextInputText
         or theme.Text
+
+    ------------------------------------------------------------
+    -- PLACEHOLDER
+    ------------------------------------------------------------
+
+    self.Input.PlaceholderColor3 =
+        theme.TextInputPlaceholder
+        or theme.Placeholder
+        or DEFAULT_PLACEHOLDER_COLOR
+
+    ------------------------------------------------------------
+    -- FONT
+    ------------------------------------------------------------
 
     self:SetFont(
         self.Window.CurrentFont
@@ -300,15 +380,20 @@ end
 ------------------------------------------------------------
 
 function TextInput:Destroy()
+
     if self.Destroyed then
         return
     end
 
-    self.Destroyed = true
+    self.Destroyed =
+        true
 
     if self.Container then
+
         self.Container:Destroy()
-        self.Container = nil
+
+        self.Container =
+            nil
     end
 
     for i, element in ipairs(
@@ -316,10 +401,12 @@ function TextInput:Destroy()
     ) do
 
         if element == self then
+
             table.remove(
                 self.Tab.Elements,
                 i
             )
+
             break
         end
     end
