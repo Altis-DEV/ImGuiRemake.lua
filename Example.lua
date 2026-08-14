@@ -686,36 +686,30 @@ ModalTab:Label({
     Title = "Modal appears above the entire Window as an overlay.",
 })
 
-local function createExampleModal()
+local function createDestroyModal()
     local Modal
 
     Modal = ModalTab:Modal({
-        Title = '<font color="#55AAFF" size="18"><b>Confirm Action</b></font>',
-        Text = 'This is a <font color="#FF5555"><b>RichText Modal</b></font>.\nChoose an action below.',
+        Title = '<font color="#FF5555" size="18"><b>Destroy Window</b></font>',
+        Text = "Do You Want To Destroy The Window?",
+
         Buttons = {
             {
-                Title = "Cancel",
+                Title = "No",
                 Callback = function()
-                    print("[Modal] Cancel")
+                    print("[Modal] No")
                     Modal:Close()
                 end,
             },
+
             {
-                Title = "Ignore",
-                Color = Color3.fromRGB(120, 80, 40),
-                HighlightColor = Color3.fromRGB(150, 100, 50),
+                Title = "Yes",
+                Color = Color3.fromRGB(180, 50, 50),
+                HighlightColor = Color3.fromRGB(220, 70, 70),
+
                 Callback = function()
-                    print("[Modal] Ignore")
-                    Modal:Close()
-                end,
-            },
-            {
-                Title = "Confirm",
-                Color = Color3.fromRGB(45, 170, 90),
-                HighlightColor = Color3.fromRGB(60, 200, 110),
-                Callback = function()
-                    print("[Modal] Confirm")
-                    Modal:Close()
+                    print("[Modal] Yes")
+                    Window:Destroy()
                 end,
             },
         },
@@ -725,9 +719,10 @@ local function createExampleModal()
 end
 
 ModalTab:Button({
-    Title = "Open Example Modal",
+    Title = "Window Destroy",
+
     Callback = function()
-        createExampleModal()
+        createDestroyModal()
     end,
 })
 
