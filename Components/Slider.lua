@@ -35,7 +35,9 @@ function Slider.new(tab, options)
     self.Tab = tab
     self.Window = tab.Window
 
-    self.Title = tostring(options.Title or "Slider")
+    self.Title = tostring(
+        options.Title or "Slider"
+    )
 
     self.Min = tonumber(options.Min)
         or tonumber(options.Minimum)
@@ -62,6 +64,22 @@ function Slider.new(tab, options)
     if self.Value == nil then
         self.Value = self.Min
     end
+
+    ------------------------------------------------------------
+    -- FORMAT
+    --
+    -- {value} sẽ được thay bằng giá trị hiện tại.
+    --
+    -- Ví dụ:
+    -- "{value} Stud"
+    -- "Stud : {value}"
+    -- "{value} Y"
+    ------------------------------------------------------------
+
+    self.Format =
+        options.Format ~= nil
+        and tostring(options.Format)
+        or "{value}"
 
     self.Callback =
         type(options.Callback) == "function"
@@ -240,6 +258,7 @@ function Slider.new(tab, options)
 
     self.SliderFrame.MouseButton1Click:Connect(
         function()
+
             if self.Destroyed then
                 return
             end
@@ -250,6 +269,7 @@ function Slider.new(tab, options)
 
     self.SliderFrame.InputBegan:Connect(
         function(input)
+
             if self.Destroyed then
                 return
             end
@@ -266,6 +286,7 @@ function Slider.new(tab, options)
 
     UserInputService.InputChanged:Connect(
         function(input)
+
             if self.Destroyed then
                 return
             end
@@ -288,6 +309,7 @@ function Slider.new(tab, options)
 
     UserInputService.InputEnded:Connect(
         function(input)
+
             if input.UserInputType
                 == Enum.UserInputType.MouseButton1
                 or input.UserInputType
@@ -315,6 +337,7 @@ end
 ----------------------------------------------------------------
 
 function Slider:_SetFromPointer()
+
     if self.Destroyed then
         return
     end
@@ -324,6 +347,10 @@ function Slider:_SetFromPointer()
 
     local absoluteSize =
         self.SliderFrame.AbsoluteSize
+
+    if absoluteSize.X <= 0 then
+        return
+    end
 
     local mousePosition =
         UserInputService:GetMouseLocation()
@@ -358,6 +385,7 @@ function Slider:SetValue(
     newValue,
     fireCallback
 )
+
     if self.Destroyed then
         return self.Value
     end
@@ -401,8 +429,12 @@ function Slider:SetValue(
         percentage = 0
     else
         percentage =
-            (self.Value - self.Min)
-            / (self.Max - self.Min)
+            (
+                self.Value - self.Min
+            )
+            / (
+                self.Max - self.Min
+            )
     end
 
     percentage =
@@ -414,6 +446,9 @@ function Slider:SetValue(
 
     ----------------------------------------------------------------
     -- UPDATE BAR
+    --
+    -- Works with negative values because percentage is calculated
+    -- from Min -> Max rather than assuming Min = 0.
     ----------------------------------------------------------------
 
     TweenService:Create(
@@ -443,22 +478,31 @@ function Slider:SetValue(
             self.Value
         )
 
+    ----------------------------------------------------------------
+    -- CALLBACK
+    ----------------------------------------------------------------
+
     if changed
         and fireCallback ~= false then
 
-        task.spawn(function()
-            local ok, err = pcall(
-                self.Callback,
-                self.Value
-            )
+        task.spawn(
+            function()
 
-            if not ok then
-                warn(
-                    "Slider callback error:",
-                    err
-                )
+                local ok, err =
+                    pcall(
+                        self.Callback,
+                        self.Value
+                    )
+
+                if not ok then
+
+                    warn(
+                        "Slider callback error:",
+                        err
+                    )
+                end
             end
-        end)
+        )
     end
 
     return self.Value
@@ -469,7 +513,33 @@ end
 ----------------------------------------------------------------
 
 function Slider:_FormatValue(value)
+
+    local formattedValue =
+        self:_FormatNumber(
+            value
+        )
+
+    if not self.Format
+        or self.Format == "" then
+
+        return formattedValue
+    end
+
+    return string.gsub(
+        self.Format,
+        "{value}",
+        formattedValue
+    )
+end
+
+----------------------------------------------------------------
+-- FORMAT NUMBER
+----------------------------------------------------------------
+
+function Slider:_FormatNumber(value)
+
     if self.Step >= 1 then
+
         return tostring(
             math.floor(
                 value + 0.5
@@ -478,7 +548,9 @@ function Slider:_FormatValue(value)
     end
 
     local decimals = 0
-    local step = self.Step
+    local step = math.abs(
+        self.Step
+    )
 
     while step < 1
         and decimals < 6 do
@@ -488,25 +560,60 @@ function Slider:_FormatValue(value)
     end
 
     return string.format(
-        "%." .. decimals .. "f",
+        "%."
+            .. decimals
+            .. "f",
         value
     )
+end
+
+----------------------------------------------------------------
+-- FORMAT
+----------------------------------------------------------------
+
+function Slider:SetFormat(
+    newFormat
+)
+
+    if self.Destroyed then
+        return
+    end
+
+    if newFormat == nil then
+        self.Format = "{value}"
+    else
+        self.Format =
+            tostring(
+                newFormat
+            )
+    end
+
+    self.ValueLabel.Text =
+        self:_FormatValue(
+            self.Value
+        )
 end
 
 ----------------------------------------------------------------
 -- TITLE
 ----------------------------------------------------------------
 
-function Slider:SetTitle(newTitle)
+function Slider:SetTitle(
+    newTitle
+)
+
     if self.Destroyed then
         return
     end
 
     self.Title =
-        tostring(newTitle)
+        tostring(
+            newTitle
+        )
 
     self.Container.Name =
-        self.Title .. "_Slider"
+        self.Title
+        .. "_Slider"
 
     self.TitleLabel.Text =
         self.Title
@@ -516,21 +623,29 @@ end
 -- MIN
 ----------------------------------------------------------------
 
-function Slider:SetMin(newMin)
+function Slider:SetMin(
+    newMin
+)
+
     if self.Destroyed then
         return self.Min
     end
 
-    newMin = tonumber(newMin)
+    newMin =
+        tonumber(
+            newMin
+        )
 
     if not newMin then
         return self.Min
     end
 
-    self.Min = newMin
+    self.Min =
+        newMin
 
     if self.Max < self.Min then
-        self.Max = self.Min
+        self.Max =
+            self.Min
     end
 
     self:SetValue(
@@ -544,21 +659,29 @@ end
 -- MAX
 ----------------------------------------------------------------
 
-function Slider:SetMax(newMax)
+function Slider:SetMax(
+    newMax
+)
+
     if self.Destroyed then
         return self.Max
     end
 
-    newMax = tonumber(newMax)
+    newMax =
+        tonumber(
+            newMax
+        )
 
     if not newMax then
         return self.Max
     end
 
-    self.Max = newMax
+    self.Max =
+        newMax
 
     if self.Min > self.Max then
-        self.Min = self.Max
+        self.Min =
+            self.Max
     end
 
     self:SetValue(
@@ -572,7 +695,10 @@ end
 -- FONT
 ----------------------------------------------------------------
 
-function Slider:SetFont(fontType)
+function Slider:SetFont(
+    fontType
+)
+
     if self.Destroyed then
         return
     end
@@ -585,11 +711,15 @@ function Slider:SetFont(fontType)
             true
         ) then
 
-        local ok, customFont = pcall(function()
-            return Font.new(fontType)
-        end)
+        local ok, customFont =
+            pcall(function()
+                return Font.new(
+                    fontType
+                )
+            end)
 
         if ok and customFont then
+
             self.TitleLabel.FontFace =
                 customFont
 
@@ -615,7 +745,10 @@ end
 -- THEME
 ----------------------------------------------------------------
 
-function Slider:UpdateTheme(theme)
+function Slider:UpdateTheme(
+    theme
+)
+
     if self.Destroyed then
         return
     end
@@ -623,28 +756,54 @@ function Slider:UpdateTheme(theme)
     self.SliderFrame.BackgroundColor3 =
         theme.SliderFrame
         or theme.Border
-        or Color3.fromRGB(38, 38, 38)
+        or Color3.fromRGB(
+            38,
+            38,
+            38
+        )
 
     self.SliderFrame.BorderColor3 =
         theme.Border
-        or Color3.fromRGB(60, 60, 60)
+        or Color3.fromRGB(
+            60,
+            60,
+            60
+        )
 
     self.SliderBar.BackgroundColor3 =
         theme.SliderBar
         or theme.Accent
-        or Color3.fromRGB(40, 90, 175)
+        or Color3.fromRGB(
+            40,
+            90,
+            175
+        )
 
     self.ValueLabel.TextColor3 =
         theme.Text
-        or Color3.fromRGB(255, 255, 255)
+        or Color3.fromRGB(
+            255,
+            255,
+            255
+        )
 
     self.TitleLabel.TextColor3 =
         theme.Text
-        or Color3.fromRGB(255, 255, 255)
+        or Color3.fromRGB(
+            255,
+            255,
+            255
+        )
 
     self:SetFont(
         self.Window.CurrentFont
     )
+
+    -- Format không đổi khi theme thay đổi.
+    self.ValueLabel.Text =
+        self:_FormatValue(
+            self.Value
+        )
 end
 
 ----------------------------------------------------------------
@@ -652,6 +811,7 @@ end
 ----------------------------------------------------------------
 
 function Slider:Destroy()
+
     if self.Destroyed then
         return
     end
@@ -660,6 +820,7 @@ function Slider:Destroy()
     self.Dragging = false
 
     if self.Container then
+
         self.Container:Destroy()
         self.Container = nil
     end
@@ -667,11 +828,14 @@ function Slider:Destroy()
     for i, element in ipairs(
         self.Tab.Elements
     ) do
+
         if element == self then
+
             table.remove(
                 self.Tab.Elements,
                 i
             )
+
             break
         end
     end
