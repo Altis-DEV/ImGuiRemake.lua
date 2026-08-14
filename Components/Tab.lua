@@ -578,6 +578,46 @@ function Tab:Color(options)
     )
 end
 
+
+function Tab:TextInput(options)
+    if self.Destroyed then
+        return nil
+    end
+
+    if not self.Window.TextInputModule then
+        warn(
+            "TextInputModule chưa được load " ..
+            "(Kiểm tra lại file init.lua)!"
+        )
+
+        return nil
+    end
+
+    return self.Window.TextInputModule.new(
+        self,
+        options or {}
+    )
+end
+
+function Tab:Console(options)
+    if self.Destroyed then
+        return nil
+    end
+
+    if not self.Window.ConsoleModule then
+        warn(
+            "ConsoleModule chưa được load " ..
+            "(Kiểm tra lại file init.lua)!"
+        )
+
+        return nil
+    end
+
+    return self.Window.ConsoleModule.new(
+        self,
+        options or {}
+    )
+end
 ----------------------------------------------------------------
 -- SELECT
 ----------------------------------------------------------------
