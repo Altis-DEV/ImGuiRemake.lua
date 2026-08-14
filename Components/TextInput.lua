@@ -17,6 +17,7 @@ function TextInput.new(tab, options)
 
     self.Tab = tab
     self.Window = tab.Window
+    self.WidthAtRow = options.WidthAtRow
 
     self.Size = options.Size or DEFAULT_SIZE
     self.Text = tostring(options.Text or "")
