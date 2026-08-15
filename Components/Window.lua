@@ -842,7 +842,7 @@ function Window.new(
             1,
             -35,
             1,
-            -35
+            -30
         )
 
     self.ResizeCorner.BackgroundTransparency =
