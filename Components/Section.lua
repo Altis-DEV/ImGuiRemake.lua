@@ -1124,4 +1124,20 @@ function Section:Section(options)
     )
 end
 
+function Section:Viewport(options)
+
+    if not self.Window.ViewportModule then
+        warn(
+            "ViewportModule chưa được load!"
+        )
+
+        return nil
+    end
+
+    return self.Window.ViewportModule.new(
+        self,
+        options or {}
+    )
+end
+
 return Section
