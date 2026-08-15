@@ -13,51 +13,81 @@ local function getElementInstance(element)
 
     if element.Instance
         and element.Instance:IsA("GuiObject") then
+
         return element.Instance
     end
 
     if element.Container
         and element.Container:IsA("GuiObject") then
+
         return element.Container
     end
 
     return nil
 end
 
-local function getUDimWidth(udim, parentWidth)
+local function getUDimWidth(
+    udim,
+    parentWidth
+)
+
     if not udim then
         return nil
     end
 
-    return parentWidth * udim.X.Scale + udim.X.Offset
+    return
+        parentWidth
+        * udim.X.Scale
+        + udim.X.Offset
 end
 
-function Row.new(parent, options)
+function Row.new(
+    parent,
+    options
+)
+
     options = options or {}
 
-    local self = setmetatable({}, Row)
+    local self =
+        setmetatable(
+            {},
+            Row
+        )
 
-    self.Parent = parent
-    self.Window = parent.Window
+    self.Parent =
+        parent
+
+    self.Window =
+        parent.Window
 
     self.Elements = {}
     self.Cells = {}
 
-    self.Destroyed = false
+    self.Destroyed =
+        false
 
-    -- Public Row property.
+    ------------------------------------------------------------
+    -- PUBLIC AUTOFILL PROPERTY
+    ------------------------------------------------------------
+
     self.AutoFill =
         options.AutoFill == true
 
-    self._Relayouting = false
-    self._LastWidth = 0
+    self._Relayouting =
+        false
+
+    self._LastWidth =
+        0
 
     ------------------------------------------------------------
     -- CONTAINER
     ------------------------------------------------------------
 
-    self.Container = Instance.new("Frame")
-    self.Container.Name = "Row"
+    self.Container =
+        Instance.new("Frame")
+
+    self.Container.Name =
+        "Row"
 
     self.Container.Size =
         UDim2.new(
@@ -67,8 +97,12 @@ function Row.new(parent, options)
             0
         )
 
-    self.Container.BackgroundTransparency = 1
-    self.Container.BorderSizePixel = 0
+    self.Container.BackgroundTransparency =
+        1
+
+    self.Container.BorderSizePixel =
+        0
+
     self.Container.Parent =
         parent.ContentFrame
 
@@ -76,8 +110,11 @@ function Row.new(parent, options)
     -- CONTENT
     ------------------------------------------------------------
 
-    self.ContentFrame = Instance.new("Frame")
-    self.ContentFrame.Name = "ContentFrame"
+    self.ContentFrame =
+        Instance.new("Frame")
+
+    self.ContentFrame.Name =
+        "ContentFrame"
 
     self.ContentFrame.Size =
         UDim2.new(
@@ -87,9 +124,15 @@ function Row.new(parent, options)
             0
         )
 
-    self.ContentFrame.BackgroundTransparency = 1
-    self.ContentFrame.BorderSizePixel = 0
-    self.ContentFrame.ClipsDescendants = false
+    self.ContentFrame.BackgroundTransparency =
+        1
+
+    self.ContentFrame.BorderSizePixel =
+        0
+
+    self.ContentFrame.ClipsDescendants =
+        false
+
     self.ContentFrame.Parent =
         self.Container
 
@@ -110,7 +153,10 @@ function Row.new(parent, options)
                 self.Container.AbsoluteSize.X
 
             if width ~= self._LastWidth then
-                self._LastWidth = width
+
+                self._LastWidth =
+                    width
+
                 self:_Relayout()
             end
         end
@@ -143,8 +189,11 @@ function Row:_CreateCell()
             #self.Cells + 1
         )
 
-    cell.BackgroundTransparency = 1
-    cell.BorderSizePixel = 0
+    cell.BackgroundTransparency =
+        1
+
+    cell.BorderSizePixel =
+        0
 
     cell.AutomaticSize =
         Enum.AutomaticSize.Y
@@ -176,7 +225,9 @@ function Row:_GetNaturalWidth(
     local width =
         instance.AbsoluteSize.X
 
-    if width and width > 0 then
+    if width
+        and width > 0 then
+
         return width
     end
 
@@ -189,7 +240,8 @@ function Row:_GetNaturalWidth(
             self.Container.AbsoluteSize.X
 
         width =
-            parentWidth * size.X.Scale
+            parentWidth
+            * size.X.Scale
             + size.X.Offset
 
     else
@@ -199,7 +251,8 @@ function Row:_GetNaturalWidth(
     end
 
     if width <= 0 then
-        width = DEFAULT_WIDTH
+        width =
+            DEFAULT_WIDTH
     end
 
     return width
@@ -214,6 +267,10 @@ function Row:_GetElementWidth(
     instance,
     rowWidth
 )
+
+    --------------------------------------------------------
+    -- WIDTH AT ROW
+    --------------------------------------------------------
 
     if element.WidthAtRow then
 
@@ -232,6 +289,10 @@ function Row:_GetElementWidth(
         end
     end
 
+    --------------------------------------------------------
+    -- NATURAL WIDTH
+    --------------------------------------------------------
+
     if element._NaturalRowWidth
         and element._NaturalRowWidth > 0 then
 
@@ -240,6 +301,7 @@ function Row:_GetElementWidth(
 
     return math.max(
         1,
+
         self:_GetNaturalWidth(
             element,
             instance
@@ -260,14 +322,17 @@ function Row:_ApplyElementLayout(
 
     if not element
         or not instance then
+
         return
     end
 
     --------------------------------------------------------
-    -- ROOT INSTANCE
+    -- ROOT
     --
-    -- Important:
-    -- disable X automatic sizing before assigning width.
+    -- IMPORTANT:
+    -- X automatic sizing must be disabled.
+    -- Otherwise Button/TextBox/etc. can override
+    -- WidthAtRow.
     --------------------------------------------------------
 
     instance.AutomaticSize =
@@ -297,7 +362,7 @@ function Row:_ApplyElementLayout(
         Enum.AutomaticSize.Y
 
     --------------------------------------------------------
-    -- BUTTON / SIMPLE ROOT ELEMENT
+    -- SIMPLE ROOT ELEMENT
     --------------------------------------------------------
 
     if element.Instance == instance then
@@ -369,7 +434,7 @@ function Row:_ApplyElementLayout(
         end
 
         ----------------------------------------------------
-        -- Options width follows dropdown control.
+        -- OPTIONS
         ----------------------------------------------------
 
         if element.OptionsFrame then
@@ -431,7 +496,9 @@ end
 -- ATTACH ELEMENT
 ------------------------------------------------------------
 
-function Row:_AttachElement(element)
+function Row:_AttachElement(
+    element
+)
 
     local instance =
         getElementInstance(
@@ -470,10 +537,7 @@ function Row:_AttachElement(element)
         cell
 
     --------------------------------------------------------
-    -- ROOT INPUT SIZE LOCK
-    --
-    -- WidthAtRow must control the cell,
-    -- not AutomaticSize.X from the element.
+    -- ROOT SIZE LOCK
     --------------------------------------------------------
 
     instance.AutomaticSize =
@@ -499,7 +563,7 @@ function Row:_AttachElement(element)
         Enum.AutomaticSize.Y
 
     --------------------------------------------------------
-    -- INITIAL CELL WIDTH
+    -- INITIAL CELL
     --------------------------------------------------------
 
     cell.Size =
@@ -515,7 +579,7 @@ function Row:_AttachElement(element)
         Enum.AutomaticSize.Y
 
     --------------------------------------------------------
-    -- ELEMENT LAYOUT
+    -- APPLY LAYOUT
     --------------------------------------------------------
 
     self:_ApplyElementLayout(
@@ -545,6 +609,7 @@ function Row:_AttachElement(element)
                 function()
 
                     if not self.Destroyed then
+
                         self:_Relayout()
                     end
                 end
@@ -565,6 +630,7 @@ function Row:_Relayout()
 
     if self.Destroyed
         or self._Relayouting then
+
         return
     end
 
@@ -575,6 +641,7 @@ function Row:_Relayout()
         self.Container.AbsoluteSize.X
 
     if rowWidth <= 0 then
+
         self._Relayouting =
             false
 
@@ -582,7 +649,7 @@ function Row:_Relayout()
     end
 
     --------------------------------------------------------
-    -- AUTO FILL
+    -- AUTOFILL
     --
     -- AutoFill overrides wrapping.
     --------------------------------------------------------
@@ -841,9 +908,14 @@ function Row:_Relayout()
                 return
             end
 
-            local height = 0
-            local currentY = nil
-            local currentLineHeight = 0
+            local height =
+                0
+
+            local currentY =
+                nil
+
+            local currentLineHeight =
+                0
 
             for _, cell in ipairs(
                 self.Cells
@@ -925,6 +997,7 @@ end
 ------------------------------------------------------------
 
 function Row:_RefreshHeight()
+
     if self.Destroyed then
         return
     end
@@ -935,16 +1008,10 @@ end
 ------------------------------------------------------------
 -- SET AUTOFILL
 ------------------------------------------------------------
--- Public property:
---
--- row.AutoFill = true / false
---
--- Runtime method:
---
--- row:SetAutoFill(true / false)
-------------------------------------------------------------
 
-function Row:SetAutoFill(state)
+function Row:SetAutoFill(
+    state
+)
 
     if self.Destroyed then
         return
@@ -957,24 +1024,88 @@ function Row:SetAutoFill(state)
 end
 
 ------------------------------------------------------------
--- BUTTON
+-- ADD ELEMENT
 ------------------------------------------------------------
 
-function Row:Button(options)
+function Row:_AddElement(
+    element
+)
 
-    if not self.Window.ButtonModule then
-        warn("ButtonModule chưa được load!")
+    if self.Destroyed then
+        return nil
+    end
+
+    if not element then
+        return nil
+    end
+
+    table.insert(
+        self.Elements,
+        element
+    )
+
+    self:_AttachElement(
+        element
+    )
+
+    self:_Relayout()
+
+    return element
+end
+
+------------------------------------------------------------
+-- FACTORY HELPER
+--
+-- Uses explicit Row._AddElement(self, ...)
+-- to avoid method lookup ambiguity.
+------------------------------------------------------------
+
+function Row:_CreateAndAdd(
+    module,
+    options
+)
+
+    if not module then
         return nil
     end
 
     local element =
-        self.Window.ButtonModule.new(
+        module.new(
             self,
             options or {}
         )
 
-    return self:_AddElement(
+    if not element then
+        return nil
+    end
+
+    return Row._AddElement(
+        self,
         element
+    )
+end
+
+------------------------------------------------------------
+-- BUTTON
+------------------------------------------------------------
+
+function Row:Button(
+    options
+)
+
+    if not self.Window.ButtonModule then
+
+        warn(
+            "ButtonModule chưa được load!"
+        )
+
+        return nil
+    end
+
+    return Row._CreateAndAdd(
+        self,
+        self.Window.ButtonModule,
+        options
     )
 end
 
@@ -982,21 +1113,23 @@ end
 -- TOGGLE
 ------------------------------------------------------------
 
-function Row:Toggle(options)
+function Row:Toggle(
+    options
+)
 
     if not self.Window.ToggleModule then
-        warn("ToggleModule chưa được load!")
+
+        warn(
+            "ToggleModule chưa được load!"
+        )
+
         return nil
     end
 
-    local element =
-        self.Window.ToggleModule.new(
-            self,
-            options or {}
-        )
-
-    return self:_AddElement(
-        element
+    return Row._CreateAndAdd(
+        self,
+        self.Window.ToggleModule,
+        options
     )
 end
 
@@ -1004,21 +1137,23 @@ end
 -- SLIDER
 ------------------------------------------------------------
 
-function Row:Slider(options)
+function Row:Slider(
+    options
+)
 
     if not self.Window.SliderModule then
-        warn("SliderModule chưa được load!")
+
+        warn(
+            "SliderModule chưa được load!"
+        )
+
         return nil
     end
 
-    local element =
-        self.Window.SliderModule.new(
-            self,
-            options or {}
-        )
-
-    return self:_AddElement(
-        element
+    return Row._CreateAndAdd(
+        self,
+        self.Window.SliderModule,
+        options
     )
 end
 
@@ -1026,21 +1161,23 @@ end
 -- DROPDOWN
 ------------------------------------------------------------
 
-function Row:Dropdown(options)
+function Row:Dropdown(
+    options
+)
 
     if not self.Window.DropdownModule then
-        warn("DropdownModule chưa được load!")
+
+        warn(
+            "DropdownModule chưa được load!"
+        )
+
         return nil
     end
 
-    local element =
-        self.Window.DropdownModule.new(
-            self,
-            options or {}
-        )
-
-    return self:_AddElement(
-        element
+    return Row._CreateAndAdd(
+        self,
+        self.Window.DropdownModule,
+        options
     )
 end
 
@@ -1048,21 +1185,23 @@ end
 -- TEXTBOX
 ------------------------------------------------------------
 
-function Row:TextBox(options)
+function Row:TextBox(
+    options
+)
 
     if not self.Window.TextBoxModule then
-        warn("TextBoxModule chưa được load!")
+
+        warn(
+            "TextBoxModule chưa được load!"
+        )
+
         return nil
     end
 
-    local element =
-        self.Window.TextBoxModule.new(
-            self,
-            options or {}
-        )
-
-    return self:_AddElement(
-        element
+    return Row._CreateAndAdd(
+        self,
+        self.Window.TextBoxModule,
+        options
     )
 end
 
@@ -1070,21 +1209,23 @@ end
 -- TEXT INPUT
 ------------------------------------------------------------
 
-function Row:TextInput(options)
+function Row:TextInput(
+    options
+)
 
     if not self.Window.TextInputModule then
-        warn("TextInputModule chưa được load!")
+
+        warn(
+            "TextInputModule chưa được load!"
+        )
+
         return nil
     end
 
-    local element =
-        self.Window.TextInputModule.new(
-            self,
-            options or {}
-        )
-
-    return self:_AddElement(
-        element
+    return Row._CreateAndAdd(
+        self,
+        self.Window.TextInputModule,
+        options
     )
 end
 
@@ -1092,21 +1233,23 @@ end
 -- CONSOLE
 ------------------------------------------------------------
 
-function Row:Console(options)
+function Row:Console(
+    options
+)
 
     if not self.Window.ConsoleModule then
-        warn("ConsoleModule chưa được load!")
+
+        warn(
+            "ConsoleModule chưa được load!"
+        )
+
         return nil
     end
 
-    local element =
-        self.Window.ConsoleModule.new(
-            self,
-            options or {}
-        )
-
-    return self:_AddElement(
-        element
+    return Row._CreateAndAdd(
+        self,
+        self.Window.ConsoleModule,
+        options
     )
 end
 
@@ -1114,21 +1257,23 @@ end
 -- PARAGRAPH
 ------------------------------------------------------------
 
-function Row:Paragraph(options)
+function Row:Paragraph(
+    options
+)
 
     if not self.Window.ParagraphModule then
-        warn("ParagraphModule chưa được load!")
+
+        warn(
+            "ParagraphModule chưa được load!"
+        )
+
         return nil
     end
 
-    local element =
-        self.Window.ParagraphModule.new(
-            self,
-            options or {}
-        )
-
-    return self:_AddElement(
-        element
+    return Row._CreateAndAdd(
+        self,
+        self.Window.ParagraphModule,
+        options
     )
 end
 
@@ -1136,21 +1281,23 @@ end
 -- LABEL
 ------------------------------------------------------------
 
-function Row:Label(options)
+function Row:Label(
+    options
+)
 
     if not self.Window.LabelModule then
-        warn("LabelModule chưa được load!")
+
+        warn(
+            "LabelModule chưa được load!"
+        )
+
         return nil
     end
 
-    local element =
-        self.Window.LabelModule.new(
-            self,
-            options or {}
-        )
-
-    return self:_AddElement(
-        element
+    return Row._CreateAndAdd(
+        self,
+        self.Window.LabelModule,
+        options
     )
 end
 
@@ -1158,21 +1305,23 @@ end
 -- COLOR
 ------------------------------------------------------------
 
-function Row:Color(options)
+function Row:Color(
+    options
+)
 
     if not self.Window.ColorModule then
-        warn("ColorModule chưa được load!")
+
+        warn(
+            "ColorModule chưa được load!"
+        )
+
         return nil
     end
 
-    local element =
-        self.Window.ColorModule.new(
-            self,
-            options or {}
-        )
-
-    return self:_AddElement(
-        element
+    return Row._CreateAndAdd(
+        self,
+        self.Window.ColorModule,
+        options
     )
 end
 
@@ -1180,21 +1329,23 @@ end
 -- DIVIDER
 ------------------------------------------------------------
 
-function Row:Divider(options)
+function Row:Divider(
+    options
+)
 
     if not self.Window.DividerModule then
-        warn("DividerModule chưa được load!")
+
+        warn(
+            "DividerModule chưa được load!"
+        )
+
         return nil
     end
 
-    local element =
-        self.Window.DividerModule.new(
-            self,
-            options or {}
-        )
-
-    return self:_AddElement(
-        element
+    return Row._CreateAndAdd(
+        self,
+        self.Window.DividerModule,
+        options
     )
 end
 
@@ -1202,21 +1353,23 @@ end
 -- IMAGE
 ------------------------------------------------------------
 
-function Row:Image(options)
+function Row:Image(
+    options
+)
 
     if not self.Window.ImageModule then
-        warn("ImageModule chưa được load!")
+
+        warn(
+            "ImageModule chưa được load!"
+        )
+
         return nil
     end
 
-    local element =
-        self.Window.ImageModule.new(
-            self,
-            options or {}
-        )
-
-    return self:_AddElement(
-        element
+    return Row._CreateAndAdd(
+        self,
+        self.Window.ImageModule,
+        options
     )
 end
 
@@ -1224,21 +1377,23 @@ end
 -- SECTION
 ------------------------------------------------------------
 
-function Row:Section(options)
+function Row:Section(
+    options
+)
 
     if not self.Window.SectionModule then
-        warn("SectionModule chưa được load!")
+
+        warn(
+            "SectionModule chưa được load!"
+        )
+
         return nil
     end
 
-    local element =
-        self.Window.SectionModule.new(
-            self,
-            options or {}
-        )
-
-    return self:_AddElement(
-        element
+    return Row._CreateAndAdd(
+        self,
+        self.Window.SectionModule,
+        options
     )
 end
 
@@ -1246,21 +1401,23 @@ end
 -- NESTED ROW
 ------------------------------------------------------------
 
-function Row:Row(options)
+function Row:Row(
+    options
+)
 
     if not self.Window.RowModule then
-        warn("RowModule chưa được load!")
+
+        warn(
+            "RowModule chưa được load!"
+        )
+
         return nil
     end
 
-    local element =
-        self.Window.RowModule.new(
-            self,
-            options or {}
-        )
-
-    return self:_AddElement(
-        element
+    return Row._CreateAndAdd(
+        self,
+        self.Window.RowModule,
+        options
     )
 end
 
@@ -1268,7 +1425,9 @@ end
 -- UPDATE THEME
 ------------------------------------------------------------
 
-function Row:UpdateTheme(theme)
+function Row:UpdateTheme(
+    theme
+)
 
     if self.Destroyed then
         return
@@ -1282,12 +1441,14 @@ function Row:UpdateTheme(theme)
             and element.UpdateTheme then
 
             local ok, err =
-                pcall(function()
+                pcall(
+                    function()
 
-                    element:UpdateTheme(
-                        theme
-                    )
-                end)
+                        element:UpdateTheme(
+                            theme
+                        )
+                    end
+                )
 
             if not ok then
 
@@ -1304,7 +1465,9 @@ end
 -- SET FONT
 ------------------------------------------------------------
 
-function Row:SetFont(fontType)
+function Row:SetFont(
+    fontType
+)
 
     if self.Destroyed then
         return
@@ -1318,12 +1481,14 @@ function Row:SetFont(fontType)
             and element.SetFont then
 
             local ok, err =
-                pcall(function()
+                pcall(
+                    function()
 
-                    element:SetFont(
-                        fontType
-                    )
-                end)
+                        element:SetFont(
+                            fontType
+                        )
+                    end
+                )
 
             if not ok then
 
@@ -1346,9 +1511,14 @@ function Row:Destroy()
         return
     end
 
-    self.Destroyed = true
+    self.Destroyed =
+        true
 
-    for i = #self.Elements, 1, -1 do
+    for i =
+        #self.Elements,
+        1,
+        -1
+    do
 
         local element =
             self.Elements[i]
@@ -1371,21 +1541,27 @@ function Row:Destroy()
     if self.Container then
 
         self.Container:Destroy()
-        self.Container = nil
+
+        self.Container =
+            nil
     end
 
-    for i, element in ipairs(
-        self.Parent.Elements
-    ) do
+    if self.Parent
+        and self.Parent.Elements then
 
-        if element == self then
+        for i, element in ipairs(
+            self.Parent.Elements
+        ) do
 
-            table.remove(
-                self.Parent.Elements,
-                i
-            )
+            if element == self then
 
-            break
+                table.remove(
+                    self.Parent.Elements,
+                    i
+                )
+
+                break
+            end
         end
     end
 end
