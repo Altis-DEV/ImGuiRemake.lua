@@ -960,6 +960,22 @@ function Row:Row(options)
     )
 end
 
+function Row:Viewport(options)
+
+    if not self.Window.ViewportModule then
+        warn(
+            "ViewportModule chưa được load!"
+        )
+
+        return nil
+    end
+
+    return self:_CreateAndAdd(
+        self.Window.ViewportModule,
+        options
+    )
+end
+
 ------------------------------------------------------------
 -- REFRESH HEIGHT
 ------------------------------------------------------------
