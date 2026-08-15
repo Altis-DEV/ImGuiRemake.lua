@@ -195,7 +195,7 @@ WindowModule.TextInputModule =
 WindowModule.ConsoleModule =
     ConsoleModule
 
-Window.ViewportModule =
+WindowModule.ViewportModule =
     ViewportModule
 ------------------------------------------------------------
 -- CREATE WINDOW
