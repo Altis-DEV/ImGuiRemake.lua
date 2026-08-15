@@ -3,11 +3,13 @@
 local Row = {}
 Row.__index = Row
 
+
 local GAP = 5
 local DEFAULT_WIDTH = 100
 
+
 ------------------------------------------------------------
--- GET ROOT INSTANCE
+-- GET ELEMENT ROOT
 ------------------------------------------------------------
 
 local function getElementInstance(element)
@@ -16,11 +18,13 @@ local function getElementInstance(element)
         return nil
     end
 
+
     if element.Instance
         and element.Instance:IsA("GuiObject") then
 
         return element.Instance
     end
+
 
     if element.Container
         and element.Container:IsA("GuiObject") then
@@ -28,11 +32,14 @@ local function getElementInstance(element)
         return element.Container
     end
 
+
     return nil
 end
 
+
+
 ------------------------------------------------------------
--- UDim2 -> PIXEL WIDTH
+-- UDim WIDTH
 ------------------------------------------------------------
 
 local function getUDimWidth(
@@ -44,10 +51,13 @@ local function getUDimWidth(
         return nil
     end
 
+
     return
         parentWidth * udim.X.Scale
         + udim.X.Offset
 end
+
+
 
 ------------------------------------------------------------
 -- CONSTRUCTOR
@@ -58,7 +68,9 @@ function Row.new(
     options
 )
 
-    options = options or {}
+    options =
+        options or {}
+
 
     local self =
         setmetatable(
@@ -66,48 +78,59 @@ function Row.new(
             Row
         )
 
+
     self.Parent =
         parent
+
 
     self.Window =
         parent.Window
 
-    self.Elements = {}
-    self.Cells = {}
+
+    self.Elements =
+        {}
+
+
+    self.Slots =
+        {}
+
 
     self.Destroyed =
         false
 
-    --------------------------------------------------------
-    -- PUBLIC PROPERTY
-    --
-    -- AutoFill = true:
-    --   chia đều width
-    --   không wrapping
-    --
-    -- AutoFill = false:
-    --   WidthAtRow
-    --   wrapping
-    --------------------------------------------------------
 
     self.AutoFill =
         options.AutoFill == true
 
+
     self._Relayouting =
         false
+
 
     self._LastWidth =
         0
 
+
+
     --------------------------------------------------------
-    -- CONTAINER
+    -- ROOT
     --------------------------------------------------------
 
     self.Container =
         Instance.new("Frame")
 
+
     self.Container.Name =
         "Row"
+
+
+    self.Container.BackgroundTransparency =
+        1
+
+
+    self.Container.BorderSizePixel =
+        0
+
 
     self.Container.Size =
         UDim2.new(
@@ -117,14 +140,11 @@ function Row.new(
             0
         )
 
-    self.Container.BackgroundTransparency =
-        1
-
-    self.Container.BorderSizePixel =
-        0
 
     self.Container.Parent =
         parent.ContentFrame
+
+
 
     --------------------------------------------------------
     -- CONTENT
@@ -133,8 +153,18 @@ function Row.new(
     self.ContentFrame =
         Instance.new("Frame")
 
+
     self.ContentFrame.Name =
         "ContentFrame"
+
+
+    self.ContentFrame.BackgroundTransparency =
+        1
+
+
+    self.ContentFrame.BorderSizePixel =
+        0
+
 
     self.ContentFrame.Size =
         UDim2.new(
@@ -144,90 +174,111 @@ function Row.new(
             0
         )
 
-    self.ContentFrame.BackgroundTransparency =
-        1
-
-    self.ContentFrame.BorderSizePixel =
-        0
-
-    self.ContentFrame.ClipsDescendants =
-        false
 
     self.ContentFrame.Parent =
         self.Container
 
+
+
     --------------------------------------------------------
-    -- WATCH WIDTH
+    -- WIDTH LISTENER
+    --
+    -- Only Row resize.
+    -- No element resize listener.
     --------------------------------------------------------
 
     self.Container:GetPropertyChangedSignal(
         "AbsoluteSize"
-    ):Connect(
-        function()
+    ):Connect(function()
 
-            if self.Destroyed then
-                return
-            end
-
-            local width =
-                self.Container.AbsoluteSize.X
-
-            if width ~= self._LastWidth then
-
-                self._LastWidth =
-                    width
-
-                self:_Relayout()
-            end
+        if self.Destroyed then
+            return
         end
-    )
 
-    --------------------------------------------------------
-    -- REGISTER
-    --------------------------------------------------------
+
+        local width =
+            self.Container.AbsoluteSize.X
+
+
+        if width ~= self._LastWidth then
+
+            self._LastWidth =
+                width
+
+
+            self:_Relayout()
+        end
+    end)
+
+
 
     table.insert(
         parent.Elements,
         self
     )
 
+
     return self
 end
 
+
+
+
+
 ------------------------------------------------------------
--- CREATE CELL
+-- CREATE SLOT
 ------------------------------------------------------------
 
-function Row:_CreateCell()
+function Row:_CreateSlot()
 
-    local cell =
+    local slot =
         Instance.new("Frame")
 
-    cell.Name =
-        "Cell_"
-        .. tostring(
-            #self.Cells + 1
+
+    slot.Name =
+        "RowElementContainer_"
+        ..
+        tostring(
+            #self.Slots + 1
         )
 
-    cell.BackgroundTransparency =
+
+    slot.BackgroundTransparency =
         1
 
-    cell.BorderSizePixel =
+
+    slot.BorderSizePixel =
         0
 
-    cell.AutomaticSize =
-        Enum.AutomaticSize.Y
 
-    cell.Parent =
+    slot.Parent =
         self.ContentFrame
 
+
+
+    local data =
+    {
+        Container = slot,
+
+        Element = nil,
+
+        Width = DEFAULT_WIDTH,
+    }
+
+
+
     table.insert(
-        self.Cells,
-        cell
+        self.Slots,
+        data
     )
 
-    return cell
+
+    return data
 end
+
+
+
+
 
 ------------------------------------------------------------
 -- GET NATURAL WIDTH
@@ -242,34 +293,33 @@ function Row:_GetNaturalWidth(
         return nil
     end
 
-    --------------------------------------------------------
-    -- Prefer current absolute width.
-    --------------------------------------------------------
+
 
     local width =
         instance.AbsoluteSize.X
 
-    if width
-        and width > 0 then
+
+
+    if width > 0 then
 
         return width
     end
 
-    --------------------------------------------------------
-    -- Fallback to UDim2.
-    --------------------------------------------------------
+
 
     local size =
         instance.Size
 
+
+
     if size.X.Scale ~= 0 then
 
-        local parentWidth =
-            self.Container.AbsoluteSize.X
-
         width =
-            parentWidth * size.X.Scale
-            + size.X.Offset
+            self.Container.AbsoluteSize.X
+            *
+            size.X.Scale
+            +
+            size.X.Offset
 
     else
 
@@ -277,27 +327,31 @@ function Row:_GetNaturalWidth(
             size.X.Offset
     end
 
+
+
     if width <= 0 then
+
         width =
             DEFAULT_WIDTH
     end
 
+
+
     return width
 end
 
+
+
+
+
 ------------------------------------------------------------
--- GET ELEMENT WIDTH
+-- GET SLOT WIDTH
 ------------------------------------------------------------
 
-function Row:_GetElementWidth(
+function Row:_GetSlotWidth(
     element,
-    instance,
     rowWidth
 )
-
-    --------------------------------------------------------
-    -- WidthAtRow has priority in Wrapping mode.
-    --------------------------------------------------------
 
     if element.WidthAtRow then
 
@@ -306,6 +360,7 @@ function Row:_GetElementWidth(
                 element.WidthAtRow,
                 rowWidth
             )
+
 
         if width then
 
@@ -316,276 +371,19 @@ function Row:_GetElementWidth(
         end
     end
 
-    --------------------------------------------------------
-    -- Natural width.
-    --------------------------------------------------------
 
-    if element._NaturalRowWidth
-        and element._NaturalRowWidth > 0 then
 
-        return element._NaturalRowWidth
-    end
-
-    return math.max(
-        1,
-
-        self:_GetNaturalWidth(
-            element,
-            instance
-        )
+    return
+        element._NaturalRowWidth
         or DEFAULT_WIDTH
-    )
 end
 
-------------------------------------------------------------
--- APPLY ROOT WIDTH
-------------------------------------------------------------
---
--- IMPORTANT:
---
--- Row ONLY controls X.
--- Row NEVER forces Y automatic sizing.
---
-------------------------------------------------------------
 
-function Row:_ApplyRootWidth(
-    instance,
-    width
-)
 
-    if not instance then
-        return
-    end
 
-    --------------------------------------------------------
-    -- Remember original vertical behavior.
-    --------------------------------------------------------
-
-    local automaticSize =
-        instance.AutomaticSize
-
-    local originalSize =
-        instance.Size
-
-    local verticalAutomatic =
-        automaticSize
-            == Enum.AutomaticSize.Y
-        or automaticSize
-            == Enum.AutomaticSize.XY
-
-    --------------------------------------------------------
-    -- Disable AutomaticSize temporarily.
-    --
-    -- This prevents AutomaticSize.X from fighting
-    -- WidthAtRow.
-    --------------------------------------------------------
-
-    instance.AutomaticSize =
-        Enum.AutomaticSize.None
-
-    --------------------------------------------------------
-    -- EXACT ROOT WIDTH
-    --
-    -- Y is intentionally preserved.
-    --------------------------------------------------------
-
-    instance.Size =
-        UDim2.new(
-            0,
-            math.max(
-                1,
-                math.floor(
-                    width + 0.5
-                )
-            ),
-            originalSize.Y.Scale,
-            originalSize.Y.Offset
-        )
-
-    --------------------------------------------------------
-    -- Restore ONLY vertical automatic sizing.
-    --------------------------------------------------------
-
-    if verticalAutomatic then
-
-        instance.AutomaticSize =
-            Enum.AutomaticSize.Y
-
-    else
-
-        instance.AutomaticSize =
-            Enum.AutomaticSize.None
-    end
-end
 
 ------------------------------------------------------------
--- APPLY ELEMENT-SPECIFIC INTERNAL LAYOUT
-------------------------------------------------------------
-
-function Row:_ApplyElementLayout(
-    element,
-    instance,
-    width
-)
-
-    if not element
-        or not instance then
-
-        return
-    end
-
-    --------------------------------------------------------
-    -- ROOT
-    --------------------------------------------------------
-
-    self:_ApplyRootWidth(
-        instance,
-        width
-    )
-
-    instance.Position =
-        UDim2.new(
-            0,
-            0,
-            0,
-            0
-        )
-
-    --------------------------------------------------------
-    -- SIMPLE ROOT ELEMENT
-    --
-    -- Button, Color, Label, Paragraph, Image, etc.
-    --------------------------------------------------------
-
-    if element.Instance == instance then
-        return
-    end
-
-    --------------------------------------------------------
-    -- SLIDER
-    --------------------------------------------------------
-
-    if element.SliderFrame then
-
-        if element.TitleLabel then
-
-            element.SliderFrame.Size =
-                UDim2.new(
-                    0.5,
-                    0,
-                    1,
-                    0
-                )
-
-        else
-
-            element.SliderFrame.Size =
-                UDim2.new(
-                    1,
-                    0,
-                    1,
-                    0
-                )
-        end
-
-        return
-    end
-
-    --------------------------------------------------------
-    -- DROPDOWN
-    --------------------------------------------------------
-
-    if element.DropdownFrame then
-
-        local height =
-            element.DropdownFrame.Size.Y.Offset
-
-        if height <= 0 then
-            height = 30
-        end
-
-        if element.TitleLabel then
-
-            element.DropdownFrame.Size =
-                UDim2.new(
-                    0.5,
-                    0,
-                    0,
-                    height
-                )
-
-        else
-
-            element.DropdownFrame.Size =
-                UDim2.new(
-                    1,
-                    0,
-                    0,
-                    height
-                )
-        end
-
-        ----------------------------------------------------
-        -- Options frame follows dropdown control.
-        ----------------------------------------------------
-
-        if element.OptionsFrame then
-
-            local optionHeight =
-                element.OptionsFrame.Size.Y.Offset
-
-            element.OptionsFrame.Size =
-                UDim2.new(
-                    element.DropdownFrame.Size.X.Scale,
-                    element.DropdownFrame.Size.X.Offset,
-                    0,
-                    optionHeight
-                )
-        end
-
-        return
-    end
-
-    --------------------------------------------------------
-    -- TEXTBOX
-    --------------------------------------------------------
-
-    if element.TextBoxFrame then
-
-        local height =
-            element.TextBoxFrame.Size.Y.Offset
-
-        if height <= 0 then
-            height = 30
-        end
-
-        if element.TitleLabel then
-
-            element.TextBoxFrame.Size =
-                UDim2.new(
-                    0.5,
-                    0,
-                    0,
-                    height
-                )
-
-        else
-
-            element.TextBoxFrame.Size =
-                UDim2.new(
-                    1,
-                    0,
-                    0,
-                    height
-                )
-        end
-
-        return
-    end
-end
-
-------------------------------------------------------------
--- ATTACH ELEMENT
+-- ATTACH ELEMENT INTO SLOT
 ------------------------------------------------------------
 
 function Row:_AttachElement(
@@ -597,12 +395,15 @@ function Row:_AttachElement(
             element
         )
 
+
     if not instance then
         return false
     end
 
+
+
     --------------------------------------------------------
-    -- CAPTURE NATURAL WIDTH BEFORE MOVING.
+    -- STORE ORIGINAL SIZE
     --------------------------------------------------------
 
     element._NaturalRowWidth =
@@ -611,22 +412,30 @@ function Row:_AttachElement(
             instance
         )
 
-    element._InRow =
-        true
+
 
     --------------------------------------------------------
-    -- CELL
+    -- CREATE SLOT
     --------------------------------------------------------
 
-    local cell =
-        self:_CreateCell()
+    local slot =
+        self:_CreateSlot()
+
+
+
+    slot.Element =
+        element
+
+
 
     --------------------------------------------------------
-    -- MOVE ROOT INTO CELL
+    -- MOVE ELEMENT
     --------------------------------------------------------
 
     instance.Parent =
-        cell
+        slot.Container
+
+
 
     instance.Position =
         UDim2.new(
@@ -636,83 +445,106 @@ function Row:_AttachElement(
             0
         )
 
+
+
     --------------------------------------------------------
-    -- INITIAL WIDTH
+    -- ELEMENT FILL SLOT
     --------------------------------------------------------
 
-    local initialWidth =
-        element.WidthAtRow
-        and getUDimWidth(
-            element.WidthAtRow,
-            self.Container.AbsoluteSize.X
+    instance.Size =
+        UDim2.new(
+            1,
+            0,
+            instance.Size.Y.Scale,
+            instance.Size.Y.Offset
         )
-        or element._NaturalRowWidth
+
+
+
+    --------------------------------------------------------
+    -- INITIAL SLOT WIDTH
+    --------------------------------------------------------
+
+    slot.Width =
+        element._NaturalRowWidth
         or DEFAULT_WIDTH
 
-    initialWidth =
-        math.max(
-            1,
-            initialWidth
-        )
 
-    self:_ApplyElementLayout(
-        element,
-        instance,
-        initialWidth
-    )
 
-    --------------------------------------------------------
-    -- CELL SIZE
-    --------------------------------------------------------
+    self:_Relayout()
 
-    cell.Size =
+
+
+    return true
+end
+
+
+
+
+
+------------------------------------------------------------
+-- APPLY SLOT
+------------------------------------------------------------
+
+function Row:_ApplySlot(
+    slot,
+    x,
+    y,
+    width
+)
+
+    local frame =
+        slot.Container
+
+
+
+    frame.Position =
         UDim2.new(
             0,
-            initialWidth,
+            x,
+            0,
+            y
+        )
+
+
+
+    frame.Size =
+        UDim2.new(
+            0,
+            width,
             0,
             0
         )
 
-    cell.AutomaticSize =
+
+
+    frame.AutomaticSize =
         Enum.AutomaticSize.Y
 
-    --------------------------------------------------------
-    -- WATCH ROOT HEIGHT ONLY
-    --------------------------------------------------------
 
-    instance:GetPropertyChangedSignal(
-        "AbsoluteSize"
-    ):Connect(
-        function()
 
-            if self.Destroyed then
-                return
-            end
+    local instance =
+        getElementInstance(
+            slot.Element
+        )
 
-            if self._Relayouting then
-                return
-            end
 
-            task.defer(
-                function()
+    if instance then
 
-                    if not self.Destroyed then
-
-                        self:_Relayout()
-                    end
-                end
+        instance.Size =
+            UDim2.new(
+                1,
+                0,
+                instance.Size.Y.Scale,
+                instance.Size.Y.Offset
             )
-        end
-    )
 
-    --------------------------------------------------------
-    -- INITIAL LAYOUT
-    --------------------------------------------------------
-
-    self:_Relayout()
-
-    return true
+    end
 end
+
+
+
+
 
 ------------------------------------------------------------
 -- RELAYOUT
@@ -726,11 +558,17 @@ function Row:_Relayout()
         return
     end
 
+
+
     self._Relayouting =
         true
 
+
+
     local rowWidth =
         self.Container.AbsoluteSize.X
+
+
 
     if rowWidth <= 0 then
 
@@ -740,39 +578,21 @@ function Row:_Relayout()
         return
     end
 
+
+
     --------------------------------------------------------
     -- AUTOFILL
-    --------------------------------------------------------
-    --
-    -- AutoFill:
-    --   * no wrapping
-    --   * equal width
-    --   * WidthAtRow ignored
-    --
     --------------------------------------------------------
 
     if self.AutoFill then
 
+
         local count =
-            #self.Cells
+            #self.Slots
+
+
 
         if count == 0 then
-
-            self.ContentFrame.Size =
-                UDim2.new(
-                    1,
-                    0,
-                    0,
-                    0
-                )
-
-            self.Container.Size =
-                UDim2.new(
-                    1,
-                    0,
-                    0,
-                    0
-                )
 
             self._Relayouting =
                 false
@@ -780,356 +600,198 @@ function Row:_Relayout()
             return
         end
 
-        local totalGap =
-            GAP
-            * math.max(
-                count - 1,
-                0
-            )
+
 
         local width =
-            math.max(
-                1,
-                (
-                    rowWidth
-                    - totalGap
-                ) / count
-            )
+        (
+            rowWidth
+            -
+            GAP *
+            (count - 1)
+        )
+        /
+        count
+
+
 
         local x =
             0
 
-        for i, cell in ipairs(
-            self.Cells
+
+
+        for _, slot in ipairs(
+            self.Slots
         ) do
 
-            local element =
-                self.Elements[i]
 
-            local instance =
-                getElementInstance(
-                    element
-                )
+            slot.Width =
+                width
 
-            cell.Size =
-                UDim2.new(
-                    0,
-                    width,
-                    0,
-                    0
-                )
 
-            cell.Position =
-                UDim2.new(
-                    0,
-                    x,
-                    0,
-                    0
-                )
 
-            cell.AutomaticSize =
-                Enum.AutomaticSize.Y
+            self:_ApplySlot(
+                slot,
+                x,
+                0,
+                width
+            )
 
-            if instance then
-
-                self:_ApplyElementLayout(
-                    element,
-                    instance,
-                    width
-                )
-            end
 
             x =
                 x
-                + width
-                + GAP
+                +
+                width
+                +
+                GAP
+
         end
 
+
+    else
+
         ----------------------------------------------------
-        -- REFRESH HEIGHT
+        -- WRAPPING
         ----------------------------------------------------
 
-        task.defer(
-            function()
+        local x =
+            0
 
-                if self.Destroyed then
-                    return
-                end
 
-                local height =
+        local y =
+            0
+
+
+        local lineHeight =
+            0
+
+
+
+        for _, slot in ipairs(
+            self.Slots
+        ) do
+
+
+            local width =
+                self:_GetSlotWidth(
+                    slot.Element,
+                    rowWidth
+                )
+
+
+
+            if x > 0
+                and x + width > rowWidth then
+
+
+                x =
                     0
 
-                for _, cell in ipairs(
-                    self.Cells
-                ) do
 
-                    height =
-                        math.max(
-                            height,
-                            cell.AbsoluteSize.Y
-                        )
-                end
+                y =
+                    y
+                    +
+                    lineHeight
+                    +
+                    GAP
 
-                self.ContentFrame.Size =
-                    UDim2.new(
-                        1,
-                        0,
-                        0,
-                        height
-                    )
 
-                self.Container.Size =
-                    UDim2.new(
-                        1,
-                        0,
-                        0,
-                        height
-                    )
+                lineHeight =
+                    0
 
-                self._Relayouting =
-                    false
             end
-        )
 
-        return
-    end
 
-    --------------------------------------------------------
-    -- WRAPPING
-    --------------------------------------------------------
 
-    local x =
-        0
+            slot.Width =
+                width
 
-    local y =
-        0
 
-    local lineHeight =
-        0
 
-    for i, cell in ipairs(
-        self.Cells
-    ) do
-
-        local element =
-            self.Elements[i]
-
-        local instance =
-            getElementInstance(
-                element
-            )
-
-        local width =
-            self:_GetElementWidth(
-                element,
-                instance,
-                rowWidth
-            )
-
-        width =
-            math.min(
-                math.max(
-                    1,
-                    width
-                ),
-                rowWidth
-            )
-
-        ----------------------------------------------------
-        -- NEW LINE
-        ----------------------------------------------------
-
-        if x > 0
-            and x + width > rowWidth then
-
-            x =
-                0
-
-            y =
-                y
-                + lineHeight
-                + GAP
-
-            lineHeight =
-                0
-        end
-
-        ----------------------------------------------------
-        -- CELL
-        ----------------------------------------------------
-
-        cell.Size =
-            UDim2.new(
-                0,
-                width,
-                0,
-                0
-            )
-
-        cell.Position =
-            UDim2.new(
-                0,
+            self:_ApplySlot(
+                slot,
                 x,
-                0,
-                y
-            )
-
-        cell.AutomaticSize =
-            Enum.AutomaticSize.Y
-
-        ----------------------------------------------------
-        -- ELEMENT
-        ----------------------------------------------------
-
-        if instance then
-
-            self:_ApplyElementLayout(
-                element,
-                instance,
+                y,
                 width
             )
+
+
+
+            lineHeight =
+                math.max(
+                    lineHeight,
+                    slot.Container.AbsoluteSize.Y
+                )
+
+
+
+            x =
+                x
+                +
+                width
+                +
+                GAP
+
+        end
+    end
+
+
+
+    --------------------------------------------------------
+    -- HEIGHT UPDATE
+    --------------------------------------------------------
+
+    task.defer(function()
+
+        if self.Destroyed then
+            return
         end
 
-        ----------------------------------------------------
-        -- LINE HEIGHT
-        ----------------------------------------------------
 
-        lineHeight =
-            math.max(
-                lineHeight,
-                cell.AbsoluteSize.Y
+        local height = 0
+
+
+        for _, slot in ipairs(
+            self.Slots
+        ) do
+
+            local bottom =
+                slot.Container.Position.Y.Offset
+                +
+                slot.Container.AbsoluteSize.Y
+
+
+
+            height =
+                math.max(
+                    height,
+                    bottom
+                )
+        end
+
+
+
+        self.ContentFrame.Size =
+            UDim2.new(
+                1,
+                0,
+                0,
+                height
             )
 
-        x =
-            x
-            + width
-            + GAP
-    end
 
-    --------------------------------------------------------
-    -- FINAL HEIGHT
-    --------------------------------------------------------
+        self.Container.Size =
+            UDim2.new(
+                1,
+                0,
+                0,
+                height
+            )
 
-    task.defer(
-        function()
 
-            if self.Destroyed then
-                return
-            end
+        self._Relayouting =
+            false
 
-            local height =
-                0
-
-            local currentY =
-                nil
-
-            local currentLineHeight =
-                0
-
-            for _, cell in ipairs(
-                self.Cells
-            ) do
-
-                local cellY =
-                    cell.Position.Y.Offset
-
-                local cellHeight =
-                    cell.AbsoluteSize.Y
-
-                if currentY == nil then
-
-                    currentY =
-                        cellY
-
-                    currentLineHeight =
-                        cellHeight
-
-                elseif cellY ~= currentY then
-
-                    height =
-                        math.max(
-                            height,
-                            currentY
-                            + currentLineHeight
-                        )
-
-                    currentY =
-                        cellY
-
-                    currentLineHeight =
-                        cellHeight
-
-                else
-
-                    currentLineHeight =
-                        math.max(
-                            currentLineHeight,
-                            cellHeight
-                        )
-                end
-            end
-
-            if currentY ~= nil then
-
-                height =
-                    math.max(
-                        height,
-                        currentY
-                        + currentLineHeight
-                    )
-            end
-
-            self.ContentFrame.Size =
-                UDim2.new(
-                    1,
-                    0,
-                    0,
-                    height
-                )
-
-            self.Container.Size =
-                UDim2.new(
-                    1,
-                    0,
-                    0,
-                    height
-                )
-
-            self._Relayouting =
-                false
-        end
-    )
-end
-
-------------------------------------------------------------
--- REFRESH HEIGHT
-------------------------------------------------------------
-
-function Row:_RefreshHeight()
-
-    if self.Destroyed then
-        return
-    end
-
-    self:_Relayout()
-end
-
-------------------------------------------------------------
--- SET AUTOFILL
-------------------------------------------------------------
-
-function Row:SetAutoFill(
-    state
-)
-
-    if self.Destroyed then
-        return
-    end
-
-    self.AutoFill =
-        state == true
-
-    self:_Relayout()
+    end)
 end
 
 ------------------------------------------------------------
@@ -1144,26 +806,35 @@ function Row:_AddElement(
         return nil
     end
 
+
     if not element then
         return nil
     end
+
+
 
     table.insert(
         self.Elements,
         element
     )
 
+
     self:_AttachElement(
         element
     )
 
+
     self:_Relayout()
+
 
     return element
 end
 
+
+
+
 ------------------------------------------------------------
--- FACTORY HELPER
+-- FACTORY
 ------------------------------------------------------------
 
 function Row:_CreateAndAdd(
@@ -1175,21 +846,29 @@ function Row:_CreateAndAdd(
         return nil
     end
 
+
+
     local element =
         module.new(
             self,
             options or {}
         )
 
+
     if not element then
         return nil
     end
 
-    return Row._AddElement(
-        self,
+
+
+    return self:_AddElement(
         element
     )
 end
+
+
+
+
 
 ------------------------------------------------------------
 -- BUTTON
@@ -1200,6 +879,7 @@ function Row:Button(
 )
 
     if not self.Window.ButtonModule then
+
         warn(
             "ButtonModule chưa được load!"
         )
@@ -1207,12 +887,17 @@ function Row:Button(
         return nil
     end
 
-    return Row._CreateAndAdd(
-        self,
+
+
+    return self:_CreateAndAdd(
         self.Window.ButtonModule,
         options
     )
 end
+
+
+
+
 
 ------------------------------------------------------------
 -- TOGGLE
@@ -1223,6 +908,7 @@ function Row:Toggle(
 )
 
     if not self.Window.ToggleModule then
+
         warn(
             "ToggleModule chưa được load!"
         )
@@ -1230,12 +916,17 @@ function Row:Toggle(
         return nil
     end
 
-    return Row._CreateAndAdd(
-        self,
+
+
+    return self:_CreateAndAdd(
         self.Window.ToggleModule,
         options
     )
 end
+
+
+
+
 
 ------------------------------------------------------------
 -- SLIDER
@@ -1246,6 +937,7 @@ function Row:Slider(
 )
 
     if not self.Window.SliderModule then
+
         warn(
             "SliderModule chưa được load!"
         )
@@ -1253,12 +945,17 @@ function Row:Slider(
         return nil
     end
 
-    return Row._CreateAndAdd(
-        self,
+
+
+    return self:_CreateAndAdd(
         self.Window.SliderModule,
         options
     )
 end
+
+
+
+
 
 ------------------------------------------------------------
 -- DROPDOWN
@@ -1269,6 +966,7 @@ function Row:Dropdown(
 )
 
     if not self.Window.DropdownModule then
+
         warn(
             "DropdownModule chưa được load!"
         )
@@ -1276,12 +974,17 @@ function Row:Dropdown(
         return nil
     end
 
-    return Row._CreateAndAdd(
-        self,
+
+
+    return self:_CreateAndAdd(
         self.Window.DropdownModule,
         options
     )
 end
+
+
+
+
 
 ------------------------------------------------------------
 -- TEXTBOX
@@ -1292,6 +995,7 @@ function Row:TextBox(
 )
 
     if not self.Window.TextBoxModule then
+
         warn(
             "TextBoxModule chưa được load!"
         )
@@ -1299,12 +1003,17 @@ function Row:TextBox(
         return nil
     end
 
-    return Row._CreateAndAdd(
-        self,
+
+
+    return self:_CreateAndAdd(
         self.Window.TextBoxModule,
         options
     )
 end
+
+
+
+
 
 ------------------------------------------------------------
 -- TEXT INPUT
@@ -1315,6 +1024,7 @@ function Row:TextInput(
 )
 
     if not self.Window.TextInputModule then
+
         warn(
             "TextInputModule chưa được load!"
         )
@@ -1322,12 +1032,17 @@ function Row:TextInput(
         return nil
     end
 
-    return Row._CreateAndAdd(
-        self,
+
+
+    return self:_CreateAndAdd(
         self.Window.TextInputModule,
         options
     )
 end
+
+
+
+
 
 ------------------------------------------------------------
 -- CONSOLE
@@ -1338,6 +1053,7 @@ function Row:Console(
 )
 
     if not self.Window.ConsoleModule then
+
         warn(
             "ConsoleModule chưa được load!"
         )
@@ -1345,12 +1061,17 @@ function Row:Console(
         return nil
     end
 
-    return Row._CreateAndAdd(
-        self,
+
+
+    return self:_CreateAndAdd(
         self.Window.ConsoleModule,
         options
     )
 end
+
+
+
+
 
 ------------------------------------------------------------
 -- PARAGRAPH
@@ -1361,6 +1082,7 @@ function Row:Paragraph(
 )
 
     if not self.Window.ParagraphModule then
+
         warn(
             "ParagraphModule chưa được load!"
         )
@@ -1368,12 +1090,17 @@ function Row:Paragraph(
         return nil
     end
 
-    return Row._CreateAndAdd(
-        self,
+
+
+    return self:_CreateAndAdd(
         self.Window.ParagraphModule,
         options
     )
 end
+
+
+
+
 
 ------------------------------------------------------------
 -- LABEL
@@ -1384,6 +1111,7 @@ function Row:Label(
 )
 
     if not self.Window.LabelModule then
+
         warn(
             "LabelModule chưa được load!"
         )
@@ -1391,12 +1119,17 @@ function Row:Label(
         return nil
     end
 
-    return Row._CreateAndAdd(
-        self,
+
+
+    return self:_CreateAndAdd(
         self.Window.LabelModule,
         options
     )
 end
+
+
+
+
 
 ------------------------------------------------------------
 -- COLOR
@@ -1407,6 +1140,7 @@ function Row:Color(
 )
 
     if not self.Window.ColorModule then
+
         warn(
             "ColorModule chưa được load!"
         )
@@ -1414,12 +1148,17 @@ function Row:Color(
         return nil
     end
 
-    return Row._CreateAndAdd(
-        self,
+
+
+    return self:_CreateAndAdd(
         self.Window.ColorModule,
         options
     )
 end
+
+
+
+
 
 ------------------------------------------------------------
 -- DIVIDER
@@ -1430,6 +1169,7 @@ function Row:Divider(
 )
 
     if not self.Window.DividerModule then
+
         warn(
             "DividerModule chưa được load!"
         )
@@ -1437,12 +1177,17 @@ function Row:Divider(
         return nil
     end
 
-    return Row._CreateAndAdd(
-        self,
+
+
+    return self:_CreateAndAdd(
         self.Window.DividerModule,
         options
     )
 end
+
+
+
+
 
 ------------------------------------------------------------
 -- IMAGE
@@ -1453,6 +1198,7 @@ function Row:Image(
 )
 
     if not self.Window.ImageModule then
+
         warn(
             "ImageModule chưa được load!"
         )
@@ -1460,12 +1206,17 @@ function Row:Image(
         return nil
     end
 
-    return Row._CreateAndAdd(
-        self,
+
+
+    return self:_CreateAndAdd(
         self.Window.ImageModule,
         options
     )
 end
+
+
+
+
 
 ------------------------------------------------------------
 -- SECTION
@@ -1476,6 +1227,7 @@ function Row:Section(
 )
 
     if not self.Window.SectionModule then
+
         warn(
             "SectionModule chưa được load!"
         )
@@ -1483,12 +1235,17 @@ function Row:Section(
         return nil
     end
 
-    return Row._CreateAndAdd(
-        self,
+
+
+    return self:_CreateAndAdd(
         self.Window.SectionModule,
         options
     )
 end
+
+
+
+
 
 ------------------------------------------------------------
 -- NESTED ROW
@@ -1499,6 +1256,7 @@ function Row:Row(
 )
 
     if not self.Window.RowModule then
+
         warn(
             "RowModule chưa được load!"
         )
@@ -1506,12 +1264,55 @@ function Row:Row(
         return nil
     end
 
-    return Row._CreateAndAdd(
-        self,
+
+
+    return self:_CreateAndAdd(
         self.Window.RowModule,
         options
     )
 end
+
+------------------------------------------------------------
+-- SET AUTOFILL
+------------------------------------------------------------
+
+function Row:SetAutoFill(
+    state
+)
+
+    if self.Destroyed then
+        return
+    end
+
+
+    self.AutoFill =
+        state == true
+
+
+    self:_Relayout()
+end
+
+
+
+
+
+------------------------------------------------------------
+-- REFRESH HEIGHT
+------------------------------------------------------------
+
+function Row:_RefreshHeight()
+
+    if self.Destroyed then
+        return
+    end
+
+
+    self:_Relayout()
+end
+
+
+
+
 
 ------------------------------------------------------------
 -- UPDATE THEME
@@ -1525,12 +1326,16 @@ function Row:UpdateTheme(
         return
     end
 
+
+
     for _, element in ipairs(
         self.Elements
     ) do
 
+
         if element
             and element.UpdateTheme then
+
 
             local ok, err =
                 pcall(
@@ -1539,19 +1344,26 @@ function Row:UpdateTheme(
                         element:UpdateTheme(
                             theme
                         )
+
                     end
                 )
+
 
             if not ok then
 
                 warn(
                     "Row child theme update failed:",
-                                       err
+                    err
                 )
+
             end
         end
     end
 end
+
+
+
+
 
 ------------------------------------------------------------
 -- SET FONT
@@ -1565,12 +1377,16 @@ function Row:SetFont(
         return
     end
 
+
+
     for _, element in ipairs(
         self.Elements
     ) do
 
+
         if element
             and element.SetFont then
+
 
             local ok, err =
                 pcall(
@@ -1579,8 +1395,10 @@ function Row:SetFont(
                         element:SetFont(
                             fontType
                         )
+
                     end
                 )
+
 
             if not ok then
 
@@ -1588,10 +1406,15 @@ function Row:SetFont(
                     "Row child font update failed:",
                     err
                 )
+
             end
         end
     end
 end
+
+
+
+
 
 ------------------------------------------------------------
 -- DESTROY
@@ -1603,8 +1426,16 @@ function Row:Destroy()
         return
     end
 
+
+
     self.Destroyed =
         true
+
+
+
+    --------------------------------------------------------
+    -- DESTROY CHILD ELEMENTS
+    --------------------------------------------------------
 
     for i =
         #self.Elements,
@@ -1612,23 +1443,72 @@ function Row:Destroy()
         -1
     do
 
+
         local element =
             self.Elements[i]
+
+
 
         if element
             and element.Destroy then
 
-            element:Destroy()
+
+            pcall(
+                function()
+
+                    element:Destroy()
+
+                end
+            )
+
         end
     end
+
+
+
+
+
+    --------------------------------------------------------
+    -- CLEAR ELEMENT DATA
+    --------------------------------------------------------
 
     table.clear(
         self.Elements
     )
 
+
+
+
+
+    --------------------------------------------------------
+    -- DESTROY SLOTS
+    --------------------------------------------------------
+
+    for _, slot in ipairs(
+        self.Slots
+    ) do
+
+
+        if slot.Container then
+
+            slot.Container:Destroy()
+
+        end
+    end
+
+
+
     table.clear(
-        self.Cells
+        self.Slots
     )
+
+
+
+
+
+    --------------------------------------------------------
+    -- DESTROY ROOT
+    --------------------------------------------------------
 
     if self.Container then
 
@@ -1636,26 +1516,48 @@ function Row:Destroy()
 
         self.Container =
             nil
+
     end
+
+
+
+
+
+    --------------------------------------------------------
+    -- REMOVE FROM PARENT
+    --------------------------------------------------------
 
     if self.Parent
         and self.Parent.Elements then
+
 
         for i, element in ipairs(
             self.Parent.Elements
         ) do
 
+
             if element == self then
+
 
                 table.remove(
                     self.Parent.Elements,
                     i
                 )
 
+
                 break
+
             end
         end
     end
 end
+
+
+
+
+
+------------------------------------------------------------
+-- RETURN
+------------------------------------------------------------
 
 return Row
