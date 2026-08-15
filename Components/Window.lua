@@ -3,25 +3,46 @@
 local Window = {}
 Window.__index = Window
 
-local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
-local CoreGui = game:GetService("CoreGui")
+local TweenService =
+    game:GetService("TweenService")
+
+local UserInputService =
+    game:GetService("UserInputService")
+
+local CoreGui =
+    game:GetService("CoreGui")
 
 ------------------------------------------------------------
 -- DEFAULTS
 ------------------------------------------------------------
 
 local DEFAULT_SIZE =
-    UDim2.new(0, 500, 0, 450)
+    UDim2.new(
+        0,
+        500,
+        0,
+        450
+    )
 
 local DEFAULT_MIN_SIZE =
-    Vector2.new(300, 250)
+    Vector2.new(
+        300,
+        250
+    )
 
 local DEFAULT_MAX_SIZE =
-    Vector2.new(1920, 1080)
+    Vector2.new(
+        1920,
+        1080
+    )
 
 local DEFAULT_POSITION =
-    UDim2.new(0.5, -250, 0.5, -225)
+    UDim2.new(
+        0.5,
+        -250,
+        0.5,
+        -225
+    )
 
 ------------------------------------------------------------
 -- CONSTANTS
@@ -29,10 +50,25 @@ local DEFAULT_POSITION =
 
 local TOPBAR_HEIGHT = 30
 local TAB_HEIGHT = 35
+
 local CONTENT_TOP =
-    TOPBAR_HEIGHT + TAB_HEIGHT
+    TOPBAR_HEIGHT
+    + TAB_HEIGHT
 
 local WINDOW_OFFSET = 30
+
+------------------------------------------------------------
+-- ZINDEX
+------------------------------------------------------------
+--
+-- Topbar luôn nằm trên ResizeCorner.
+-- ResizeCorner chỉ phục vụ resize và không được
+-- che các nút điều khiển của Topbar.
+--
+
+local RESIZE_ZINDEX = 2
+local TOPBAR_ZINDEX = 10
+local TOPBAR_CONTROL_ZINDEX = 11
 
 ------------------------------------------------------------
 -- GLOBAL WINDOW REGISTRY
@@ -55,20 +91,30 @@ Window._GlobalFocusConnection =
 ------------------------------------------------------------
 
 local function isInput(input)
+
     return
         input.UserInputType
-            == Enum.UserInputType.MouseButton1
-        or input.UserInputType
-            == Enum.UserInputType.Touch
+        == Enum.UserInputType.MouseButton1
+
+        or
+
+        input.UserInputType
+        == Enum.UserInputType.Touch
 end
 
-local function safeDisconnect(connection)
+local function safeDisconnect(
+    connection
+)
+
     if connection then
         connection:Disconnect()
     end
 end
 
-local function getInputPosition(input)
+local function getInputPosition(
+    input
+)
+
     if input
         and input.Position then
 
@@ -91,7 +137,9 @@ end
 -- WINDOW HIT TEST
 ------------------------------------------------------------
 
-function Window:_ContainsPoint(point)
+function Window:_ContainsPoint(
+    point
+)
 
     if self.IsDestroyed then
         return false
@@ -111,9 +159,20 @@ function Window:_ContainsPoint(point)
 
     return
         point.X >= position.X
-        and point.X <= position.X + size.X
-        and point.Y >= position.Y
-        and point.Y <= position.Y + size.Y
+
+        and
+
+        point.X <=
+        position.X + size.X
+
+        and
+
+        point.Y >= position.Y
+
+        and
+
+        point.Y <=
+        position.Y + size.Y
 end
 
 ------------------------------------------------------------
@@ -139,12 +198,6 @@ function Window:_RegisterWindow()
         self
     )
 
-    --------------------------------------------------------
-    -- GLOBAL FOCUS HANDLER
-    --
-    -- Chỉ tạo một connection cho toàn bộ library.
-    --------------------------------------------------------
-
     if not Window._GlobalFocusConnection then
 
         Window._GlobalFocusConnection =
@@ -156,14 +209,15 @@ function Window:_RegisterWindow()
                     end
 
                     local point =
-                        getInputPosition(input)
+                        getInputPosition(
+                            input
+                        )
 
-                    ------------------------------------------------
-                    -- Tìm window trên cùng đang chứa điểm click.
-                    ------------------------------------------------
+                    local selectedWindow =
+                        nil
 
-                    local selectedWindow = nil
-                    local highestOrder = -math.huge
+                    local highestOrder =
+                        -math.huge
 
                     for _, window in ipairs(
                         Window._Registry
@@ -171,7 +225,9 @@ function Window:_RegisterWindow()
 
                         if window
                             and not window.IsDestroyed
-                            and window:_ContainsPoint(point) then
+                            and window:_ContainsPoint(
+                                point
+                            ) then
 
                             if window.DisplayOrder
                                 > highestOrder then
@@ -199,9 +255,14 @@ end
 
 function Window:_UnregisterWindow()
 
-    for i = #Window._Registry, 1, -1 do
+    for i =
+        #Window._Registry,
+        1,
+        -1
+    do
 
-        if Window._Registry[i] == self then
+        if Window._Registry[i] ==
+            self then
 
             table.remove(
                 Window._Registry,
@@ -211,10 +272,6 @@ function Window:_UnregisterWindow()
             break
         end
     end
-
-    --------------------------------------------------------
-    -- Không còn window -> ngắt global connection.
-    --------------------------------------------------------
 
     if #Window._Registry == 0
         and Window._GlobalFocusConnection then
@@ -242,7 +299,9 @@ function Window.new(
             Window
         )
 
-    options = options or {}
+    options =
+        options
+        or {}
 
     ------------------------------------------------------------
     -- BASIC DATA
@@ -296,9 +355,6 @@ function Window.new(
 
     ------------------------------------------------------------
     -- POSITION
-    --
-    -- Nếu user không truyền Position:
-    -- window mới sẽ lệch nhẹ để dễ nhìn multi-window.
     ------------------------------------------------------------
 
     if options.Position then
@@ -315,11 +371,13 @@ function Window.new(
             UDim2.new(
                 DEFAULT_POSITION.X.Scale,
                 DEFAULT_POSITION.X.Offset
-                    + index * WINDOW_OFFSET,
+                    + index
+                    * WINDOW_OFFSET,
 
                 DEFAULT_POSITION.Y.Scale,
                 DEFAULT_POSITION.Y.Offset
-                    + index * WINDOW_OFFSET
+                    + index
+                    * WINDOW_OFFSET
             )
     end
 
@@ -330,18 +388,24 @@ function Window.new(
     self.ThemeManager =
         themeManager
 
-    self.IsMinimized = false
-    self.IsDestroyed = false
+    self.IsMinimized =
+        false
+
+    self.IsDestroyed =
+        false
 
     self.CurrentFont =
         options.Font
         or Enum.Font.RobotoMono
 
-    self.Tabs = {}
+    self.Tabs =
+        {}
 
-    self._Connections = {}
+    self._Connections =
+        {}
 
-    self._CurrentTween = nil
+    self._CurrentTween =
+        nil
 
     ------------------------------------------------------------
     -- DISPLAY ORDER
@@ -364,7 +428,8 @@ function Window.new(
             )
 
         if ok and result then
-            targetParent = result
+            targetParent =
+                result
         end
     end
 
@@ -382,7 +447,9 @@ function Window.new(
     ------------------------------------------------------------
 
     self.ScreenGui =
-        Instance.new("ScreenGui")
+        Instance.new(
+            "ScreenGui"
+        )
 
     self.ScreenGui.Name =
         "ImGuiRemake_"
@@ -402,10 +469,6 @@ function Window.new(
     self.ScreenGui.IgnoreGuiInset =
         true
 
-    ------------------------------------------------------------
-    -- IMPORTANT FOR MULTI WINDOW
-    ------------------------------------------------------------
-
     self.ScreenGui.DisplayOrder =
         self.DisplayOrder
 
@@ -417,7 +480,9 @@ function Window.new(
     ------------------------------------------------------------
 
     self.MainFrame =
-        Instance.new("Frame")
+        Instance.new(
+            "Frame"
+        )
 
     self.MainFrame.Name =
         "MainFrame"
@@ -442,7 +507,9 @@ function Window.new(
     ------------------------------------------------------------
 
     self.Topbar =
-        Instance.new("Frame")
+        Instance.new(
+            "Frame"
+        )
 
     self.Topbar.Name =
         "Topbar"
@@ -466,6 +533,9 @@ function Window.new(
     self.Topbar.BorderSizePixel =
         0
 
+    self.Topbar.ZIndex =
+        TOPBAR_ZINDEX
+
     self.Topbar.Parent =
         self.MainFrame
 
@@ -474,7 +544,9 @@ function Window.new(
     ------------------------------------------------------------
 
     self.CollapseBtn =
-        Instance.new("TextButton")
+        Instance.new(
+            "TextButton"
+        )
 
     self.CollapseBtn.Name =
         "CollapseBtn"
@@ -510,6 +582,9 @@ function Window.new(
     self.CollapseBtn.AutoButtonColor =
         false
 
+    self.CollapseBtn.ZIndex =
+        TOPBAR_CONTROL_ZINDEX
+
     self.CollapseBtn.Parent =
         self.Topbar
 
@@ -518,7 +593,9 @@ function Window.new(
     ------------------------------------------------------------
 
     self.Title =
-        Instance.new("TextLabel")
+        Instance.new(
+            "TextLabel"
+        )
 
     self.Title.Name =
         "Title"
@@ -554,15 +631,20 @@ function Window.new(
     self.Title.TextSize =
         14
 
+    self.Title.ZIndex =
+        TOPBAR_CONTROL_ZINDEX
+
     self.Title.Parent =
         self.Topbar
 
     ------------------------------------------------------------
-    -- CLOSE BUTTON
+    -- CLOSE / DESTROY BUTTON
     ------------------------------------------------------------
 
     self.CloseBtn =
-        Instance.new("TextButton")
+        Instance.new(
+            "TextButton"
+        )
 
     self.CloseBtn.Name =
         "CloseBtn"
@@ -598,6 +680,9 @@ function Window.new(
     self.CloseBtn.AutoButtonColor =
         false
 
+    self.CloseBtn.ZIndex =
+        TOPBAR_CONTROL_ZINDEX
+
     self.CloseBtn.Parent =
         self.Topbar
 
@@ -606,7 +691,9 @@ function Window.new(
     ------------------------------------------------------------
 
     self.TabContainer =
-        Instance.new("ScrollingFrame")
+        Instance.new(
+            "ScrollingFrame"
+        )
 
     self.TabContainer.Name =
         "TabContainer"
@@ -654,7 +741,9 @@ function Window.new(
         self.MainFrame
 
     local tabLayout =
-        Instance.new("UIListLayout")
+        Instance.new(
+            "UIListLayout"
+        )
 
     tabLayout.Name =
         "TabLayout"
@@ -682,7 +771,9 @@ function Window.new(
     ------------------------------------------------------------
 
     self.ElementContainer =
-        Instance.new("ScrollingFrame")
+        Instance.new(
+            "ScrollingFrame"
+        )
 
     self.ElementContainer.Name =
         "ElementContainer"
@@ -731,7 +822,9 @@ function Window.new(
     ------------------------------------------------------------
 
     self.ResizeCorner =
-        Instance.new("TextButton")
+        Instance.new(
+            "TextButton"
+        )
 
     self.ResizeCorner.Name =
         "ResizeCorner"
@@ -749,7 +842,7 @@ function Window.new(
             1,
             -35,
             1,
-            -30
+            -35
         )
 
     self.ResizeCorner.BackgroundTransparency =
@@ -773,13 +866,18 @@ function Window.new(
     self.ResizeCorner.AutoButtonColor =
         false
 
+    --------------------------------------------------------
+    -- IMPORTANT:
+    -- Lower than Topbar controls.
+    --------------------------------------------------------
+
     self.ResizeCorner.ZIndex =
-        100
+        RESIZE_ZINDEX
 
     self.ResizeCorner.Parent =
         self.MainFrame
 
-    ------------------------------------------------------------
+    --------------------------------------------------------
     -- REGISTER
     ------------------------------------------------------------
 
@@ -813,10 +911,6 @@ function Window:Focus()
     if self.IsDestroyed then
         return
     end
-
-    ------------------------------------------------------------
-    -- Nếu window bị minimize vẫn đưa nó lên trước.
-    ------------------------------------------------------------
 
     Window._NextDisplayOrder =
         Window._NextDisplayOrder + 1
@@ -886,7 +980,9 @@ end
 -- THEME
 ----------------------------------------------------------------
 
-function Window:ApplyTheme(theme)
+function Window:ApplyTheme(
+    theme
+)
 
     if self.IsDestroyed then
         return
@@ -972,18 +1068,10 @@ function Window:ApplyTheme(theme)
             175
         )
 
-    ------------------------------------------------------------
-    -- FONT
-    ------------------------------------------------------------
-
     self:Font(
         self.CurrentFont,
         true
     )
-
-    ------------------------------------------------------------
-    -- CHILD THEME
-    ------------------------------------------------------------
 
     for _, tab in ipairs(
         self.Tabs
@@ -1042,7 +1130,7 @@ function Window:InitLogic()
     )
 
     ------------------------------------------------------------
-    -- CLOSE
+    -- CLOSE / DESTROY
     ------------------------------------------------------------
 
     self:_Connect(
@@ -1059,7 +1147,8 @@ function Window:InitLogic()
     -- TOPBAR DRAG
     ------------------------------------------------------------
 
-    local isDragging = false
+    local isDragging =
+        false
 
     local dragInput
     local dragStart
@@ -1075,9 +1164,15 @@ function Window:InitLogic()
 
             self:Focus()
 
-            isDragging = true
-            dragInput = input
-            dragStart = input.Position
+            isDragging =
+                true
+
+            dragInput =
+                input
+
+            dragStart =
+                input.Position
+
             startPosition =
                 self.MainFrame.Position
         end
@@ -1117,12 +1212,20 @@ function Window:InitLogic()
         UserInputService.InputEnded,
         function(input)
 
-            if input == dragInput then
+            if input ==
+                dragInput then
 
-                isDragging = false
-                dragInput = nil
-                dragStart = nil
-                startPosition = nil
+                isDragging =
+                    false
+
+                dragInput =
+                    nil
+
+                dragStart =
+                    nil
+
+                startPosition =
+                    nil
             end
         end
     )
@@ -1131,7 +1234,8 @@ function Window:InitLogic()
     -- RESIZE
     ------------------------------------------------------------
 
-    local isResizing = false
+    local isResizing =
+        false
 
     local resizeInput
     local resizeStart
@@ -1151,10 +1255,14 @@ function Window:InitLogic()
 
             self:Focus()
 
-            isResizing = true
+            isResizing =
+                true
 
-            resizeInput = input
-            resizeStart = input.Position
+            resizeInput =
+                input
+
+            resizeStart =
+                input.Position
 
             startSize =
                 self.MainFrame.AbsoluteSize
@@ -1177,14 +1285,16 @@ function Window:InitLogic()
 
             local newWidth =
                 math.clamp(
-                    startSize.X + delta.X,
+                    startSize.X
+                        + delta.X,
                     self.MinSize.X,
                     self.MaxSize.X
                 )
 
             local newHeight =
                 math.clamp(
-                    startSize.Y + delta.Y,
+                    startSize.Y
+                        + delta.Y,
                     self.MinSize.Y,
                     self.MaxSize.Y
                 )
@@ -1206,13 +1316,20 @@ function Window:InitLogic()
         UserInputService.InputEnded,
         function(input)
 
-            if input == resizeInput then
+            if input ==
+                resizeInput then
 
-                isResizing = false
+                isResizing =
+                    false
 
-                resizeInput = nil
-                resizeStart = nil
-                startSize = nil
+                resizeInput =
+                    nil
+
+                resizeStart =
+                    nil
+
+                startSize =
+                    nil
             end
         end
     )
@@ -1324,13 +1441,12 @@ function Window:Font(
     local useFontFace =
         false
 
-    ------------------------------------------------------------
-    -- CUSTOM FONT
-    ------------------------------------------------------------
-
-    if typeof(fontType) == "string"
+    if typeof(fontType) ==
+        "string"
         and string.find(
-            string.lower(fontType),
+            string.lower(
+                fontType
+            ),
             "rbxassetid",
             1,
             true
@@ -1369,10 +1485,6 @@ function Window:Font(
         end
     end
 
-    ------------------------------------------------------------
-    -- ENUM FONT
-    ------------------------------------------------------------
-
     if not useFontFace
         and typeof(fontType)
             == "EnumItem"
@@ -1388,10 +1500,6 @@ function Window:Font(
         self.CollapseBtn.Font =
             fontType
     end
-
-    ------------------------------------------------------------
-    -- CHILDREN
-    ------------------------------------------------------------
 
     for _, tab in ipairs(
         self.Tabs
@@ -1551,6 +1659,18 @@ function Window:Close()
     self.IsMinimized =
         true
 
+    ------------------------------------------------------------
+    -- IMPORTANT:
+    -- ResizeCorner must not remain over Topbar
+    -- while the window is minimized.
+    ------------------------------------------------------------
+
+    if self.ResizeCorner then
+
+        self.ResizeCorner.Visible =
+            false
+    end
+
     if self._CurrentTween then
         self._CurrentTween:Cancel()
     end
@@ -1560,15 +1680,12 @@ function Window:Close()
 
     self._CurrentTween =
         TweenService:Create(
-
             self.MainFrame,
-
             TweenInfo.new(
                 0.3,
                 Enum.EasingStyle.Quart,
                 Enum.EasingDirection.Out
             ),
-
             {
                 Size =
                     UDim2.new(
@@ -1583,17 +1700,13 @@ function Window:Close()
     self._CurrentTween:Play()
 
     TweenService:Create(
-
         self.CollapseBtn,
-
         TweenInfo.new(
             0.3
         ),
-
         {
             Rotation = -90
         }
-
     ):Play()
 end
 
@@ -1618,17 +1731,24 @@ function Window:Open()
         self._CurrentTween:Cancel()
     end
 
+    ------------------------------------------------------------
+    -- Restore resize corner.
+    ------------------------------------------------------------
+
+    if self.ResizeCorner then
+
+        self.ResizeCorner.Visible =
+            true
+    end
+
     self._CurrentTween =
         TweenService:Create(
-
             self.MainFrame,
-
             TweenInfo.new(
                 0.3,
                 Enum.EasingStyle.Quart,
                 Enum.EasingDirection.Out
             ),
-
             {
                 Size =
                     self.Size
@@ -1638,17 +1758,13 @@ function Window:Open()
     self._CurrentTween:Play()
 
     TweenService:Create(
-
         self.CollapseBtn,
-
         TweenInfo.new(
             0.3
         ),
-
         {
             Rotation = 0
         }
-
     ):Play()
 end
 
@@ -1665,10 +1781,6 @@ function Window:Destroy()
     self.IsDestroyed =
         true
 
-    ------------------------------------------------------------
-    -- CANCEL TWEEN
-    ------------------------------------------------------------
-
     if self._CurrentTween then
 
         self._CurrentTween:Cancel()
@@ -1677,21 +1789,9 @@ function Window:Destroy()
             nil
     end
 
-    ------------------------------------------------------------
-    -- DISCONNECT
-    ------------------------------------------------------------
-
     self:_DisconnectAll()
 
-    ------------------------------------------------------------
-    -- UNREGISTER FROM GLOBAL WINDOW LIST
-    ------------------------------------------------------------
-
     self:_UnregisterWindow()
-
-    ------------------------------------------------------------
-    -- CLEAN TABS
-    ------------------------------------------------------------
 
     for _, tab in ipairs(
         self.Tabs
@@ -1710,10 +1810,6 @@ function Window:Destroy()
         self.Tabs
     )
 
-    ------------------------------------------------------------
-    -- DESTROY GUI
-    ------------------------------------------------------------
-
     if self.ScreenGui then
 
         self.ScreenGui:Destroy()
@@ -1722,19 +1818,29 @@ function Window:Destroy()
             nil
     end
 
-    ------------------------------------------------------------
-    -- REFERENCES
-    ------------------------------------------------------------
+    self.MainFrame =
+        nil
 
-    self.MainFrame = nil
-    self.Topbar = nil
-    self.TabContainer = nil
-    self.ElementContainer = nil
-    self.ResizeCorner = nil
+    self.Topbar =
+        nil
 
-    self.Title = nil
-    self.CloseBtn = nil
-    self.CollapseBtn = nil
+    self.TabContainer =
+        nil
+
+    self.ElementContainer =
+        nil
+
+    self.ResizeCorner =
+        nil
+
+    self.Title =
+        nil
+
+    self.CloseBtn =
+        nil
+
+    self.CollapseBtn =
+        nil
 end
 
 return Window
