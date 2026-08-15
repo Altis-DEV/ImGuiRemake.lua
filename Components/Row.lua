@@ -6,7 +6,12 @@ Row.__index = Row
 local GAP = 5
 local DEFAULT_WIDTH = 100
 
+------------------------------------------------------------
+-- GET ROOT INSTANCE
+------------------------------------------------------------
+
 local function getElementInstance(element)
+
     if not element then
         return nil
     end
@@ -26,6 +31,10 @@ local function getElementInstance(element)
     return nil
 end
 
+------------------------------------------------------------
+-- UDim2 -> PIXEL WIDTH
+------------------------------------------------------------
+
 local function getUDimWidth(
     udim,
     parentWidth
@@ -36,10 +45,13 @@ local function getUDimWidth(
     end
 
     return
-        parentWidth
-        * udim.X.Scale
+        parentWidth * udim.X.Scale
         + udim.X.Offset
 end
+
+------------------------------------------------------------
+-- CONSTRUCTOR
+------------------------------------------------------------
 
 function Row.new(
     parent,
@@ -66,9 +78,17 @@ function Row.new(
     self.Destroyed =
         false
 
-    ------------------------------------------------------------
-    -- PUBLIC AUTOFILL PROPERTY
-    ------------------------------------------------------------
+    --------------------------------------------------------
+    -- PUBLIC PROPERTY
+    --
+    -- AutoFill = true:
+    --   chia đều width
+    --   không wrapping
+    --
+    -- AutoFill = false:
+    --   WidthAtRow
+    --   wrapping
+    --------------------------------------------------------
 
     self.AutoFill =
         options.AutoFill == true
@@ -79,9 +99,9 @@ function Row.new(
     self._LastWidth =
         0
 
-    ------------------------------------------------------------
+    --------------------------------------------------------
     -- CONTAINER
-    ------------------------------------------------------------
+    --------------------------------------------------------
 
     self.Container =
         Instance.new("Frame")
@@ -106,9 +126,9 @@ function Row.new(
     self.Container.Parent =
         parent.ContentFrame
 
-    ------------------------------------------------------------
+    --------------------------------------------------------
     -- CONTENT
-    ------------------------------------------------------------
+    --------------------------------------------------------
 
     self.ContentFrame =
         Instance.new("Frame")
@@ -136,9 +156,9 @@ function Row.new(
     self.ContentFrame.Parent =
         self.Container
 
-    ------------------------------------------------------------
+    --------------------------------------------------------
     -- WATCH WIDTH
-    ------------------------------------------------------------
+    --------------------------------------------------------
 
     self.Container:GetPropertyChangedSignal(
         "AbsoluteSize"
@@ -162,9 +182,9 @@ function Row.new(
         end
     )
 
-    ------------------------------------------------------------
+    --------------------------------------------------------
     -- REGISTER
-    ------------------------------------------------------------
+    --------------------------------------------------------
 
     table.insert(
         parent.Elements,
@@ -222,6 +242,10 @@ function Row:_GetNaturalWidth(
         return nil
     end
 
+    --------------------------------------------------------
+    -- Prefer current absolute width.
+    --------------------------------------------------------
+
     local width =
         instance.AbsoluteSize.X
 
@@ -230,6 +254,10 @@ function Row:_GetNaturalWidth(
 
         return width
     end
+
+    --------------------------------------------------------
+    -- Fallback to UDim2.
+    --------------------------------------------------------
 
     local size =
         instance.Size
@@ -240,8 +268,7 @@ function Row:_GetNaturalWidth(
             self.Container.AbsoluteSize.X
 
         width =
-            parentWidth
-            * size.X.Scale
+            parentWidth * size.X.Scale
             + size.X.Offset
 
     else
@@ -269,7 +296,7 @@ function Row:_GetElementWidth(
 )
 
     --------------------------------------------------------
-    -- WIDTH AT ROW
+    -- WidthAtRow has priority in Wrapping mode.
     --------------------------------------------------------
 
     if element.WidthAtRow then
@@ -290,7 +317,7 @@ function Row:_GetElementWidth(
     end
 
     --------------------------------------------------------
-    -- NATURAL WIDTH
+    -- Natural width.
     --------------------------------------------------------
 
     if element._NaturalRowWidth
@@ -311,7 +338,88 @@ function Row:_GetElementWidth(
 end
 
 ------------------------------------------------------------
--- APPLY ELEMENT LAYOUT
+-- APPLY ROOT WIDTH
+------------------------------------------------------------
+--
+-- IMPORTANT:
+--
+-- Row ONLY controls X.
+-- Row NEVER forces Y automatic sizing.
+--
+------------------------------------------------------------
+
+function Row:_ApplyRootWidth(
+    instance,
+    width
+)
+
+    if not instance then
+        return
+    end
+
+    --------------------------------------------------------
+    -- Remember original vertical behavior.
+    --------------------------------------------------------
+
+    local automaticSize =
+        instance.AutomaticSize
+
+    local originalSize =
+        instance.Size
+
+    local verticalAutomatic =
+        automaticSize
+            == Enum.AutomaticSize.Y
+        or automaticSize
+            == Enum.AutomaticSize.XY
+
+    --------------------------------------------------------
+    -- Disable AutomaticSize temporarily.
+    --
+    -- This prevents AutomaticSize.X from fighting
+    -- WidthAtRow.
+    --------------------------------------------------------
+
+    instance.AutomaticSize =
+        Enum.AutomaticSize.None
+
+    --------------------------------------------------------
+    -- EXACT ROOT WIDTH
+    --
+    -- Y is intentionally preserved.
+    --------------------------------------------------------
+
+    instance.Size =
+        UDim2.new(
+            0,
+            math.max(
+                1,
+                math.floor(
+                    width + 0.5
+                )
+            ),
+            originalSize.Y.Scale,
+            originalSize.Y.Offset
+        )
+
+    --------------------------------------------------------
+    -- Restore ONLY vertical automatic sizing.
+    --------------------------------------------------------
+
+    if verticalAutomatic then
+
+        instance.AutomaticSize =
+            Enum.AutomaticSize.Y
+
+    else
+
+        instance.AutomaticSize =
+            Enum.AutomaticSize.None
+    end
+end
+
+------------------------------------------------------------
+-- APPLY ELEMENT-SPECIFIC INTERNAL LAYOUT
 ------------------------------------------------------------
 
 function Row:_ApplyElementLayout(
@@ -328,15 +436,12 @@ function Row:_ApplyElementLayout(
 
     --------------------------------------------------------
     -- ROOT
-    --
-    -- IMPORTANT:
-    -- X automatic sizing must be disabled.
-    -- Otherwise Button/TextBox/etc. can override
-    -- WidthAtRow.
     --------------------------------------------------------
 
-    instance.AutomaticSize =
-        Enum.AutomaticSize.None
+    self:_ApplyRootWidth(
+        instance,
+        width
+    )
 
     instance.Position =
         UDim2.new(
@@ -346,23 +451,10 @@ function Row:_ApplyElementLayout(
             0
         )
 
-    instance.Size =
-        UDim2.new(
-            1,
-            0,
-            instance.Size.Y.Scale,
-            instance.Size.Y.Offset
-        )
-
-    --------------------------------------------------------
-    -- ROOT VERTICAL AUTO SIZE
-    --------------------------------------------------------
-
-    instance.AutomaticSize =
-        Enum.AutomaticSize.Y
-
     --------------------------------------------------------
     -- SIMPLE ROOT ELEMENT
+    --
+    -- Button, Color, Label, Paragraph, Image, etc.
     --------------------------------------------------------
 
     if element.Instance == instance then
@@ -434,7 +526,7 @@ function Row:_ApplyElementLayout(
         end
 
         ----------------------------------------------------
-        -- OPTIONS
+        -- Options frame follows dropdown control.
         ----------------------------------------------------
 
         if element.OptionsFrame then
@@ -510,7 +602,7 @@ function Row:_AttachElement(
     end
 
     --------------------------------------------------------
-    -- NATURAL WIDTH
+    -- CAPTURE NATURAL WIDTH BEFORE MOVING.
     --------------------------------------------------------
 
     element._NaturalRowWidth =
@@ -530,18 +622,11 @@ function Row:_AttachElement(
         self:_CreateCell()
 
     --------------------------------------------------------
-    -- MOVE ROOT
+    -- MOVE ROOT INTO CELL
     --------------------------------------------------------
 
     instance.Parent =
         cell
-
-    --------------------------------------------------------
-    -- ROOT SIZE LOCK
-    --------------------------------------------------------
-
-    instance.AutomaticSize =
-        Enum.AutomaticSize.None
 
     instance.Position =
         UDim2.new(
@@ -551,26 +636,39 @@ function Row:_AttachElement(
             0
         )
 
-    instance.Size =
-        UDim2.new(
+    --------------------------------------------------------
+    -- INITIAL WIDTH
+    --------------------------------------------------------
+
+    local initialWidth =
+        element.WidthAtRow
+        and getUDimWidth(
+            element.WidthAtRow,
+            self.Container.AbsoluteSize.X
+        )
+        or element._NaturalRowWidth
+        or DEFAULT_WIDTH
+
+    initialWidth =
+        math.max(
             1,
-            0,
-            instance.Size.Y.Scale,
-            instance.Size.Y.Offset
+            initialWidth
         )
 
-    instance.AutomaticSize =
-        Enum.AutomaticSize.Y
+    self:_ApplyElementLayout(
+        element,
+        instance,
+        initialWidth
+    )
 
     --------------------------------------------------------
-    -- INITIAL CELL
+    -- CELL SIZE
     --------------------------------------------------------
 
     cell.Size =
         UDim2.new(
             0,
-            element._NaturalRowWidth
-                or DEFAULT_WIDTH,
+            initialWidth,
             0,
             0
         )
@@ -579,17 +677,7 @@ function Row:_AttachElement(
         Enum.AutomaticSize.Y
 
     --------------------------------------------------------
-    -- APPLY LAYOUT
-    --------------------------------------------------------
-
-    self:_ApplyElementLayout(
-        element,
-        instance,
-        cell.AbsoluteSize.X
-    )
-
-    --------------------------------------------------------
-    -- WATCH VERTICAL SIZE
+    -- WATCH ROOT HEIGHT ONLY
     --------------------------------------------------------
 
     instance:GetPropertyChangedSignal(
@@ -616,6 +704,10 @@ function Row:_AttachElement(
             )
         end
     )
+
+    --------------------------------------------------------
+    -- INITIAL LAYOUT
+    --------------------------------------------------------
 
     self:_Relayout()
 
@@ -650,8 +742,13 @@ function Row:_Relayout()
 
     --------------------------------------------------------
     -- AUTOFILL
+    --------------------------------------------------------
     --
-    -- AutoFill overrides wrapping.
+    -- AutoFill:
+    --   * no wrapping
+    --   * equal width
+    --   * WidthAtRow ignored
+    --
     --------------------------------------------------------
 
     if self.AutoFill then
@@ -661,7 +758,7 @@ function Row:_Relayout()
 
         if count == 0 then
 
-            self.Container.Size =
+            self.ContentFrame.Size =
                 UDim2.new(
                     1,
                     0,
@@ -669,7 +766,7 @@ function Row:_Relayout()
                     0
                 )
 
-            self.ContentFrame.Size =
+            self.Container.Size =
                 UDim2.new(
                     1,
                     0,
@@ -699,7 +796,8 @@ function Row:_Relayout()
                 ) / count
             )
 
-        local x = 0
+        local x =
+            0
 
         for i, cell in ipairs(
             self.Cells
@@ -712,9 +810,6 @@ function Row:_Relayout()
                 getElementInstance(
                     element
                 )
-
-            cell.AutomaticSize =
-                Enum.AutomaticSize.Y
 
             cell.Size =
                 UDim2.new(
@@ -732,6 +827,9 @@ function Row:_Relayout()
                     0
                 )
 
+            cell.AutomaticSize =
+                Enum.AutomaticSize.Y
+
             if instance then
 
                 self:_ApplyElementLayout(
@@ -747,6 +845,10 @@ function Row:_Relayout()
                 + GAP
         end
 
+        ----------------------------------------------------
+        -- REFRESH HEIGHT
+        ----------------------------------------------------
+
         task.defer(
             function()
 
@@ -754,7 +856,8 @@ function Row:_Relayout()
                     return
                 end
 
-                local height = 0
+                local height =
+                    0
 
                 for _, cell in ipairs(
                     self.Cells
@@ -793,13 +896,16 @@ function Row:_Relayout()
 
     --------------------------------------------------------
     -- WRAPPING
-    --
-    -- Default Row behavior.
     --------------------------------------------------------
 
-    local x = 0
-    local y = 0
-    local lineHeight = 0
+    local x =
+        0
+
+    local y =
+        0
+
+    local lineHeight =
+        0
 
     for i, cell in ipairs(
         self.Cells
@@ -821,20 +927,23 @@ function Row:_Relayout()
             )
 
         width =
-            math.clamp(
-                width,
-                1,
+            math.min(
+                math.max(
+                    1,
+                    width
+                ),
                 rowWidth
             )
 
         ----------------------------------------------------
-        -- WRAP
+        -- NEW LINE
         ----------------------------------------------------
 
         if x > 0
             and x + width > rowWidth then
 
-            x = 0
+            x =
+                0
 
             y =
                 y
@@ -848,9 +957,6 @@ function Row:_Relayout()
         ----------------------------------------------------
         -- CELL
         ----------------------------------------------------
-
-        cell.AutomaticSize =
-            Enum.AutomaticSize.Y
 
         cell.Size =
             UDim2.new(
@@ -868,8 +974,11 @@ function Row:_Relayout()
                 y
             )
 
+        cell.AutomaticSize =
+            Enum.AutomaticSize.Y
+
         ----------------------------------------------------
-        -- ROOT
+        -- ELEMENT
         ----------------------------------------------------
 
         if instance then
@@ -993,7 +1102,7 @@ function Row:_Relayout()
 end
 
 ------------------------------------------------------------
--- REFRESH
+-- REFRESH HEIGHT
 ------------------------------------------------------------
 
 function Row:_RefreshHeight()
@@ -1055,9 +1164,6 @@ end
 
 ------------------------------------------------------------
 -- FACTORY HELPER
---
--- Uses explicit Row._AddElement(self, ...)
--- to avoid method lookup ambiguity.
 ------------------------------------------------------------
 
 function Row:_CreateAndAdd(
@@ -1094,7 +1200,6 @@ function Row:Button(
 )
 
     if not self.Window.ButtonModule then
-
         warn(
             "ButtonModule chưa được load!"
         )
@@ -1118,7 +1223,6 @@ function Row:Toggle(
 )
 
     if not self.Window.ToggleModule then
-
         warn(
             "ToggleModule chưa được load!"
         )
@@ -1142,7 +1246,6 @@ function Row:Slider(
 )
 
     if not self.Window.SliderModule then
-
         warn(
             "SliderModule chưa được load!"
         )
@@ -1166,7 +1269,6 @@ function Row:Dropdown(
 )
 
     if not self.Window.DropdownModule then
-
         warn(
             "DropdownModule chưa được load!"
         )
@@ -1190,7 +1292,6 @@ function Row:TextBox(
 )
 
     if not self.Window.TextBoxModule then
-
         warn(
             "TextBoxModule chưa được load!"
         )
@@ -1214,7 +1315,6 @@ function Row:TextInput(
 )
 
     if not self.Window.TextInputModule then
-
         warn(
             "TextInputModule chưa được load!"
         )
@@ -1238,7 +1338,6 @@ function Row:Console(
 )
 
     if not self.Window.ConsoleModule then
-
         warn(
             "ConsoleModule chưa được load!"
         )
@@ -1262,7 +1361,6 @@ function Row:Paragraph(
 )
 
     if not self.Window.ParagraphModule then
-
         warn(
             "ParagraphModule chưa được load!"
         )
@@ -1286,7 +1384,6 @@ function Row:Label(
 )
 
     if not self.Window.LabelModule then
-
         warn(
             "LabelModule chưa được load!"
         )
@@ -1310,7 +1407,6 @@ function Row:Color(
 )
 
     if not self.Window.ColorModule then
-
         warn(
             "ColorModule chưa được load!"
         )
@@ -1334,7 +1430,6 @@ function Row:Divider(
 )
 
     if not self.Window.DividerModule then
-
         warn(
             "DividerModule chưa được load!"
         )
@@ -1358,7 +1453,6 @@ function Row:Image(
 )
 
     if not self.Window.ImageModule then
-
         warn(
             "ImageModule chưa được load!"
         )
@@ -1382,7 +1476,6 @@ function Row:Section(
 )
 
     if not self.Window.SectionModule then
-
         warn(
             "SectionModule chưa được load!"
         )
@@ -1406,7 +1499,6 @@ function Row:Row(
 )
 
     if not self.Window.RowModule then
-
         warn(
             "RowModule chưa được load!"
         )
@@ -1454,7 +1546,7 @@ function Row:UpdateTheme(
 
                 warn(
                     "Row child theme update failed:",
-                    err
+                                       err
                 )
             end
         end
