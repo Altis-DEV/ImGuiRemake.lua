@@ -136,6 +136,8 @@ local TextInputModule =
 local ConsoleModule =
     LoadModule("Components/Console.lua")
 
+local ViewportModule =
+    LoadModule("Components/Viewport.lua")
 
 ------------------------------------------------------------
 -- INJECT TAB MODULE
@@ -192,6 +194,9 @@ WindowModule.TextInputModule =
 
 WindowModule.ConsoleModule =
     ConsoleModule
+
+Window.ViewportModule =
+    ViewportModule
 ------------------------------------------------------------
 -- CREATE WINDOW
 ------------------------------------------------------------
