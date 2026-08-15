@@ -618,6 +618,22 @@ function Tab:Console(options)
         options or {}
     )
 end
+
+function Tab:Viewport(options)
+
+    if not self.Window.ViewportModule then
+        warn(
+            "ViewportModule chưa được load!"
+        )
+
+        return nil
+    end
+
+    return self.Window.ViewportModule.new(
+        self,
+        options or {}
+    )
+end
 ----------------------------------------------------------------
 -- SELECT
 ----------------------------------------------------------------
