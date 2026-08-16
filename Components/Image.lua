@@ -7,7 +7,8 @@ Image.__index = Image
 -- SERVICES
 ------------------------------------------------------------
 
-local HttpService = game:GetService("HttpService")
+local HttpService =
+    game:GetService("HttpService")
 
 ------------------------------------------------------------
 -- CONSTANTS
@@ -20,14 +21,19 @@ local DEFAULT_HEIGHT = 150
 ------------------------------------------------------------
 
 local function getExtension(url)
-    local cleanUrl = string.match(
-        url,
-        "^[^%?]+"
-    ) or url
+
+    local cleanUrl =
+        string.match(
+            url,
+            "^[^%?]+"
+        )
+        or url
 
     local extension =
         string.match(
-            string.lower(cleanUrl),
+            string.lower(
+                cleanUrl
+            ),
             "%.([%a%d]+)$"
         )
 
@@ -41,22 +47,29 @@ local function getExtension(url)
     return "png"
 end
 
-local function hashString(str)
-    -- FNV-1a style lightweight hash.
-    -- Không cần cryptographic security,
-    -- chỉ cần tạo tên file ổn định cho cache.
+------------------------------------------------------------
 
-    local hash = 2166136261
+local function hashString(str)
+
+    local hash =
+        2166136261
 
     for i = 1, #str do
+
         hash =
             bit32.bxor(
                 hash,
-                string.byte(str, i)
+                string.byte(
+                    str,
+                    i
+                )
             )
 
         hash =
-            (hash * 16777619)
+            (
+                hash
+                * 16777619
+            )
             % 4294967296
     end
 
@@ -66,37 +79,56 @@ local function hashString(str)
     )
 end
 
+------------------------------------------------------------
+
 local function isAssetId(value)
+
     if typeof(value) ~= "string" then
         return false
     end
 
-    return string.match(
-        value,
-        "^rbxassetid://"
-    ) ~= nil
-    or string.match(
-        value,
-        "^%d+$"
-    ) ~= nil
+    return
+        string.match(
+            value,
+            "^rbxassetid://"
+        ) ~= nil
+
+        or
+
+        string.match(
+            value,
+            "^%d+$"
+        ) ~= nil
 end
 
+------------------------------------------------------------
+
 local function normalizeAssetId(value)
-    value = tostring(value)
+
+    value =
+        tostring(
+            value
+        )
 
     if string.match(
         value,
         "^%d+$"
     ) then
 
-        return "rbxassetid://" .. value
+        return
+            "rbxassetid://"
+            .. value
     end
 
     return value
 end
 
+------------------------------------------------------------
+
 local function canUseFilesystem()
-    return type(writefile) == "function"
+
+    return
+        type(writefile) == "function"
         and type(isfile) == "function"
         and type(getcustomasset) == "function"
 end
@@ -105,24 +137,29 @@ end
 -- CONSTRUCTOR
 ------------------------------------------------------------
 
-function Image.new(tab, options)
+function Image.new(
+    tab,
+    options
+)
 
-    options = options or {}
+    options =
+        options or {}
 
-    ------------------------------------------------------------
+    --------------------------------------------------------
     -- REQUIRED IMAGE
-    ------------------------------------------------------------
+    --------------------------------------------------------
 
     if options.Image == nil then
+
         error(
             "Image requires an Image property",
             2
         )
     end
 
-    ------------------------------------------------------------
+    --------------------------------------------------------
     -- SIZE / RATIO REQUIRED
-    ------------------------------------------------------------
+    --------------------------------------------------------
 
     if options.Size == nil
         and options.Ratio == nil then
@@ -133,9 +170,32 @@ function Image.new(tab, options)
         )
     end
 
+    --------------------------------------------------------
+    -- VALIDATE SIZE
+    --------------------------------------------------------
+
+    if options.Size ~= nil then
+
+        if typeof(options.Size)
+            ~= "UDim2" then
+
+            error(
+                "Image Size must be a UDim2",
+                2
+            )
+        end
+    end
+
+    --------------------------------------------------------
+    -- VALIDATE RATIO
+    --------------------------------------------------------
+
     if options.Ratio ~= nil then
+
         options.Ratio =
-            tonumber(options.Ratio)
+            tonumber(
+                options.Ratio
+            )
 
         if not options.Ratio
             or options.Ratio <= 0 then
@@ -148,26 +208,39 @@ function Image.new(tab, options)
     end
 
     local self =
-        setmetatable({}, Image)
+        setmetatable(
+            {},
+            Image
+        )
 
-    self.Tab = tab
-    self.Window = tab.Window
-    self.WidthAtRow = options.WidthAtRow
+    self.Tab =
+        tab
+
+    self.Window =
+        tab.Window
+
+    self.WidthAtRow =
+        options.WidthAtRow
 
     self.Source =
-        tostring(options.Image)
+        tostring(
+            options.Image
+        )
 
     self.Ratio =
         options.Ratio
 
-    self.Destroyed = false
+    self.Destroyed =
+        false
 
-    ------------------------------------------------------------
+    --------------------------------------------------------
     -- CONTAINER
-    ------------------------------------------------------------
+    --------------------------------------------------------
 
     self.Container =
-        Instance.new("Frame")
+        Instance.new(
+            "Frame"
+        )
 
     self.Container.Name =
         "Image"
@@ -190,12 +263,14 @@ function Image.new(tab, options)
     self.Container.Parent =
         self.Tab.ContentFrame
 
-    ------------------------------------------------------------
+    --------------------------------------------------------
     -- IMAGE FRAME
-    ------------------------------------------------------------
+    --------------------------------------------------------
 
     self.ImageFrame =
-        Instance.new("Frame")
+        Instance.new(
+            "Frame"
+        )
 
     self.ImageFrame.Name =
         "ImageFrame"
@@ -211,7 +286,6 @@ function Image.new(tab, options)
     self.ImageFrame.BackgroundColor3 =
         self.Window.ThemeData.Background
 
-    -- Dùng border có sẵn của theme
     self.ImageFrame.BorderColor3 =
         self.Window.ThemeData.Border
 
@@ -224,12 +298,14 @@ function Image.new(tab, options)
     self.ImageFrame.Parent =
         self.Container
 
-    ------------------------------------------------------------
+    --------------------------------------------------------
     -- IMAGE LABEL
-    ------------------------------------------------------------
+    --------------------------------------------------------
 
     self.Instance =
-        Instance.new("ImageLabel")
+        Instance.new(
+            "ImageLabel"
+        )
 
     self.Instance.Name =
         "Image"
@@ -254,42 +330,28 @@ function Image.new(tab, options)
     self.Instance.Parent =
         self.ImageFrame
 
-    ------------------------------------------------------------
+    --------------------------------------------------------
     -- RATIO
-    ------------------------------------------------------------
+    --------------------------------------------------------
 
     if self.Ratio then
 
-        self.AspectRatio =
-            Instance.new(
-                "UIAspectRatioConstraint"
-            )
-
-        self.AspectRatio.Name =
-            "AspectRatio"
-
-        self.AspectRatio.AspectRatio =
+        self:_ApplyRatio(
             self.Ratio
-
-        self.AspectRatio.DominantAxis =
-            Enum.DominantAxis.Width
-
-        self.AspectRatio.Parent =
-            self.ImageFrame
-
+        )
     end
 
-    ------------------------------------------------------------
+    --------------------------------------------------------
     -- LOAD IMAGE
-    ------------------------------------------------------------
+    --------------------------------------------------------
 
     self:_LoadImage(
         self.Source
     )
 
-    ------------------------------------------------------------
+    --------------------------------------------------------
     -- REGISTER
-    ------------------------------------------------------------
+    --------------------------------------------------------
 
     table.insert(
         self.Tab.Elements,
@@ -300,10 +362,65 @@ function Image.new(tab, options)
 end
 
 ------------------------------------------------------------
+-- APPLY RATIO
+------------------------------------------------------------
+
+function Image:_ApplyRatio(
+    ratio
+)
+
+    if self.Destroyed then
+        return
+    end
+
+    ratio =
+        tonumber(
+            ratio
+        )
+
+    if not ratio
+        or ratio <= 0 then
+
+        return false
+    end
+
+    --------------------------------------------------------
+    -- CREATE CONSTRAINT
+    --------------------------------------------------------
+
+    if not self.AspectRatio then
+
+        self.AspectRatio =
+            Instance.new(
+                "UIAspectRatioConstraint"
+            )
+
+        self.AspectRatio.Name =
+            "AspectRatio"
+
+        self.AspectRatio.DominantAxis =
+            Enum.DominantAxis.Width
+
+        self.AspectRatio.Parent =
+            self.ImageFrame
+    end
+
+    self.AspectRatio.AspectRatio =
+        ratio
+
+    self.Ratio =
+        ratio
+
+    return true
+end
+
+------------------------------------------------------------
 -- LOAD IMAGE
 ------------------------------------------------------------
 
-function Image:_LoadImage(source)
+function Image:_LoadImage(
+    source
+)
 
     if self.Destroyed then
         return
@@ -316,7 +433,9 @@ function Image:_LoadImage(source)
     if isAssetId(source) then
 
         self.Instance.Image =
-            normalizeAssetId(source)
+            normalizeAssetId(
+                source
+            )
 
         return
     end
@@ -327,7 +446,9 @@ function Image:_LoadImage(source)
 
     local isHttp =
         string.match(
-            string.lower(source),
+            string.lower(
+                source
+            ),
             "^https?://"
         ) ~= nil
 
@@ -356,24 +477,27 @@ function Image:_LoadImage(source)
     end
 
     local extension =
-        getExtension(source)
+        getExtension(
+            source
+        )
 
     local hash =
-        hashString(source)
+        hashString(
+            source
+        )
 
-    -- Không tạo folder.
-    -- Cache trực tiếp vào filesystem của executor.
     local cachePath =
-        "imgui_" ..
-        hash ..
-        "." ..
-        extension
+        "imgui_"
+        .. hash
+        .. "."
+        .. extension
 
     --------------------------------------------------------
     -- EXISTING CACHE
     --------------------------------------------------------
 
-    local okIsFile, exists =
+    local okIsFile,
+        exists =
         pcall(
             isfile,
             cachePath
@@ -382,7 +506,8 @@ function Image:_LoadImage(source)
     if okIsFile
         and exists then
 
-        local okAsset, asset =
+        local okAsset,
+            asset =
             pcall(
                 getcustomasset,
                 cachePath
@@ -402,9 +527,11 @@ function Image:_LoadImage(source)
     -- DOWNLOAD
     --------------------------------------------------------
 
-    local okHttp, data =
+    local okHttp,
+        data =
         pcall(
             function()
+
                 return game:HttpGet(
                     source
                 )
@@ -427,9 +554,11 @@ function Image:_LoadImage(source)
     -- WRITE CACHE
     --------------------------------------------------------
 
-    local okWrite, writeError =
+    local okWrite,
+        writeError =
         pcall(
             function()
+
                 writefile(
                     cachePath,
                     data
@@ -451,7 +580,8 @@ function Image:_LoadImage(source)
     -- GET CUSTOM ASSET
     --------------------------------------------------------
 
-    local okAsset, asset =
+    local okAsset,
+        asset =
         pcall(
             getcustomasset,
             cachePath
@@ -476,7 +606,9 @@ end
 -- SET IMAGE
 ------------------------------------------------------------
 
-function Image:SetImage(newImage)
+function Image:SetImage(
+    newImage
+)
 
     if self.Destroyed then
         return
@@ -487,7 +619,9 @@ function Image:SetImage(newImage)
     end
 
     self.Source =
-        tostring(newImage)
+        tostring(
+            newImage
+        )
 
     self:_LoadImage(
         self.Source
@@ -495,10 +629,85 @@ function Image:SetImage(newImage)
 end
 
 ------------------------------------------------------------
+-- SET SIZE
+------------------------------------------------------------
+
+function Image:SetSize(
+    newSize
+)
+
+    if self.Destroyed then
+        return
+    end
+
+    if typeof(newSize)
+        ~= "UDim2" then
+
+        warn(
+            "Image:SetSize() requires a UDim2"
+        )
+
+        return
+    end
+
+    --------------------------------------------------------
+    -- Explicit size overrides Ratio.
+    --------------------------------------------------------
+
+    if self.AspectRatio then
+
+        self.AspectRatio:Destroy()
+
+        self.AspectRatio =
+            nil
+    end
+
+    self.Ratio =
+        nil
+
+    self.Container.Size =
+        newSize
+end
+
+------------------------------------------------------------
+-- SET RATIO
+------------------------------------------------------------
+
+function Image:SetRatio(
+    newRatio
+)
+
+    if self.Destroyed then
+        return
+    end
+
+    newRatio =
+        tonumber(
+            newRatio
+        )
+
+    if not newRatio
+        or newRatio <= 0 then
+
+        warn(
+            "Image:SetRatio() requires a number greater than 0"
+        )
+
+        return
+    end
+
+    self:_ApplyRatio(
+        newRatio
+    )
+end
+
+------------------------------------------------------------
 -- UPDATE THEME
 ------------------------------------------------------------
 
-function Image:UpdateTheme(theme)
+function Image:UpdateTheme(
+    theme
+)
 
     if self.Destroyed then
         return
@@ -531,11 +740,15 @@ function Image:Destroy()
         return
     end
 
-    self.Destroyed = true
+    self.Destroyed =
+        true
 
     if self.Container then
+
         self.Container:Destroy()
-        self.Container = nil
+
+        self.Container =
+            nil
     end
 
     for i, element in ipairs(
@@ -551,7 +764,6 @@ function Image:Destroy()
 
             break
         end
-
     end
 end
 
