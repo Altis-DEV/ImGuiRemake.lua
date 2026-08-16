@@ -8,64 +8,171 @@ local PADDING_Y = 4
 local DEFAULT_TEXT_SIZE = 13
 
 local DEFAULT_TEXT_COLOR =
-    Color3.fromRGB(255, 255, 255)
+    Color3.fromRGB(
+        255,
+        255,
+        255
+    )
 
-local function setFont(instance, fontType)
+------------------------------------------------------------
+-- TEXT ALIGNMENT
+------------------------------------------------------------
+
+local function getTextAlignment(
+    alignment
+)
+
+    if typeof(alignment) == "EnumItem"
+        and alignment.EnumType
+            == Enum.TextXAlignment then
+
+        return alignment
+    end
+
+    if type(alignment) == "string" then
+
+        local normalized =
+            string.lower(
+                alignment
+            )
+
+        if normalized == "center" then
+
+            return Enum.TextXAlignment.Center
+
+        elseif normalized == "right" then
+
+            return Enum.TextXAlignment.Right
+
+        elseif normalized == "left" then
+
+            return Enum.TextXAlignment.Left
+
+        end
+    end
+
+    return Enum.TextXAlignment.Left
+end
+
+------------------------------------------------------------
+-- FONT
+------------------------------------------------------------
+
+local function setFont(
+    instance,
+    fontType
+)
+
     if typeof(fontType) == "string"
         and string.find(
-            string.lower(fontType),
+            string.lower(
+                fontType
+            ),
             "rbxassetid",
             1,
             true
         ) then
 
-        local ok, customFont = pcall(function()
-            return Font.new(fontType)
-        end)
+        local ok, customFont =
+            pcall(
+                function()
+                    return Font.new(
+                        fontType
+                    )
+                end
+            )
 
         if ok and customFont then
-            instance.FontFace = customFont
+
+            instance.FontFace =
+                customFont
         end
 
         return
     end
 
     if typeof(fontType) == "EnumItem"
-        and fontType.EnumType == Enum.Font then
+        and fontType.EnumType
+            == Enum.Font then
 
-        instance.Font = fontType
+        instance.Font =
+            fontType
     end
 end
 
-function Label.new(tab, options)
-    options = options or {}
+------------------------------------------------------------
+-- CONSTRUCTOR
+------------------------------------------------------------
+
+function Label.new(
+    tab,
+    options
+)
+
+    options =
+        options
+        or {}
 
     if options.Title == nil then
+
         error(
             "Label requires a Title",
             2
         )
     end
 
-    local self = setmetatable({}, Label)
+    local self =
+        setmetatable(
+            {},
+            Label
+        )
 
-    self.Tab = tab
-    self.Window = tab.Window
-    self.WidthAtRow = options.WidthAtRow
+    self.Tab =
+        tab
 
-    self.Title = tostring(
-        options.Title
-    )
+    self.Window =
+        tab.Window
 
-    self.Destroyed = false
+    self.WidthAtRow =
+        options.WidthAtRow
 
-    local theme = self.Window.ThemeData
+    self.Title =
+        tostring(
+            options.Title
+        )
+
+    --------------------------------------------------------
+    -- TEXT ALIGNMENT
+    --
+    -- Default:
+    -- Left
+    --
+    -- Supported:
+    -- "Left"
+    -- "Center"
+    -- "Right"
+    --
+    -- Enum.TextXAlignment is also accepted.
+    --------------------------------------------------------
+
+    self.TextAlignment =
+        getTextAlignment(
+            options.TextAlignment
+        )
+
+    self.Destroyed =
+        false
+
+    local theme =
+        self.Window.ThemeData
 
     ------------------------------------------------------------
     -- CONTAINER
     ------------------------------------------------------------
 
-    self.Container = Instance.new("Frame")
+    self.Container =
+        Instance.new("Frame")
+
     self.Container.Name =
         "Label"
 
@@ -80,8 +187,12 @@ function Label.new(tab, options)
     self.Container.AutomaticSize =
         Enum.AutomaticSize.Y
 
-    self.Container.BackgroundTransparency = 1
-    self.Container.BorderSizePixel = 0
+    self.Container.BackgroundTransparency =
+        1
+
+    self.Container.BorderSizePixel =
+        0
+
     self.Container.Parent =
         self.Tab.ContentFrame
 
@@ -89,7 +200,9 @@ function Label.new(tab, options)
     -- TEXT
     ------------------------------------------------------------
 
-    self.TextLabel = Instance.new("TextLabel")
+    self.TextLabel =
+        Instance.new("TextLabel")
+
     self.TextLabel.Name =
         "Text"
 
@@ -112,18 +225,31 @@ function Label.new(tab, options)
     self.TextLabel.AutomaticSize =
         Enum.AutomaticSize.Y
 
-    self.TextLabel.BackgroundTransparency = 1
-    self.TextLabel.BorderSizePixel = 0
+    self.TextLabel.BackgroundTransparency =
+        1
+
+    self.TextLabel.BorderSizePixel =
+        0
 
     self.TextLabel.Text =
         self.Title
 
-    -- RichText + TextWrapped
-    self.TextLabel.RichText = true
-    self.TextLabel.TextWrapped = true
+    --------------------------------------------------------
+    -- RICHTEXT / WRAPPING
+    --------------------------------------------------------
+
+    self.TextLabel.RichText =
+        true
+
+    self.TextLabel.TextWrapped =
+        true
+
+    --------------------------------------------------------
+    -- TEXT ALIGNMENT
+    --------------------------------------------------------
 
     self.TextLabel.TextXAlignment =
-        Enum.TextXAlignment.Left
+        self.TextAlignment
 
     self.TextLabel.TextYAlignment =
         Enum.TextYAlignment.Center
@@ -149,16 +275,28 @@ function Label.new(tab, options)
         Instance.new("UIPadding")
 
     padding.PaddingTop =
-        UDim.new(0, PADDING_Y)
+        UDim.new(
+            0,
+            PADDING_Y
+        )
 
     padding.PaddingBottom =
-        UDim.new(0, PADDING_Y)
+        UDim.new(
+            0,
+            PADDING_Y
+        )
 
     padding.PaddingLeft =
-        UDim.new(0, PADDING_X)
+        UDim.new(
+            0,
+            PADDING_X
+        )
 
     padding.PaddingRight =
-        UDim.new(0, PADDING_X)
+        UDim.new(
+            0,
+            PADDING_X
+        )
 
     padding.Parent =
         self.Container
@@ -187,7 +325,10 @@ end
 -- SET TITLE
 ------------------------------------------------------------
 
-function Label:SetTitle(newTitle)
+function Label:SetTitle(
+    newTitle
+)
+
     if self.Destroyed then
         return
     end
@@ -197,7 +338,9 @@ function Label:SetTitle(newTitle)
     end
 
     self.Title =
-        tostring(newTitle)
+        tostring(
+            newTitle
+        )
 
     self.TextLabel.Text =
         self.Title
@@ -207,7 +350,10 @@ end
 -- SET FONT
 ------------------------------------------------------------
 
-function Label:SetFont(fontType)
+function Label:SetFont(
+    fontType
+)
+
     if self.Destroyed then
         return
     end
@@ -222,7 +368,10 @@ end
 -- UPDATE THEME
 ------------------------------------------------------------
 
-function Label:UpdateTheme(theme)
+function Label:UpdateTheme(
+    theme
+)
+
     if self.Destroyed then
         return
     end
@@ -241,15 +390,19 @@ end
 ------------------------------------------------------------
 
 function Label:Destroy()
+
     if self.Destroyed then
         return
     end
 
-    self.Destroyed = true
+    self.Destroyed =
+        true
 
     if self.Container then
+
         self.Container:Destroy()
-        self.Container = nil
+        self.Container =
+            nil
     end
 
     for i, element in ipairs(
@@ -257,6 +410,7 @@ function Label:Destroy()
     ) do
 
         if element == self then
+
             table.remove(
                 self.Tab.Elements,
                 i
